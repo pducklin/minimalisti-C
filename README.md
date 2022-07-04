@@ -1,4 +1,4 @@
-https://github.com/pducklin/minimalisti-C/raw/main/media/minimalistiC-320.png)
+(https://github.com/pducklin/minimalisti-C/raw/main/media/minimalistiC-320.png)
 
 This is a stripped-down version of Fabrice Bellard's Tiny CC 
 compiler.
