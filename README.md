@@ -114,7 +114,7 @@ You need to be explicit about what other compilers do by default:
 which header files, libraries and so on are used. Note above that 
 the linker automatically looks in `msvcrt.dll` and `kernel32.dll` for
 common system functions (no need for `.DEF` or `.LIB` files!), adding
-`user32.dll` and `gdiplus.dll` if you use the option `-pegui` to create a
+`user32.dll` and `gdi32.dll` if you use the option `-pegui` to create a
 Windows GUI app instead of instead of a default console executable.
 
 The reason for having `-nostdinc` and `-nostdlib` as defaults is for
@@ -133,13 +133,11 @@ Save this as `plain.c`:
 
 ...and you can build a 1536-byte demo program like this:
 
-    > petcc64 -stdinc -stdlib -pegui plain.c
+    > petcc64 -pegui plain.c -lkernel32 -luser32
     -> plain.c
     -> c:/users/duck/petcclib/libpetcc1_64.a
-    -> C:/Windows/system32/msvcrt.dll
     -> C:/Windows/system32/kernel32.dll
     -> C:/Windows/system32/user32.dll
-    -> C:/Windows/system32/gdi32.dll
     -------------------------------
       virt   file   size  section
       1000    200     68  .text
