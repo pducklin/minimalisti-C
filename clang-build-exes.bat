@@ -122,14 +122,14 @@ echo -6----CROSS-CHECK BUILD SHA256SUMS------------------------------
 echo Comparing hashes of Linux build and new files...
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Original cross-built EXE on Linux was...
-echo ba1f32b5b2af209bd88bb3ecfa5c174ee38add70eb0df52c04f065293ba61643
+echo fb5cd6d45d7b2618d7fe7bced6315fdae68cc170e32b855336177bd4c34fccff
 echo Compiler EXEs generated with TCC code were...
 certutil -hashfile tmpout\tcc.out.exe              SHA256 | find /v "successfully"
 certutil -hashfile winout\petcc64.exe              SHA256 | find /v "successfully"
 certutil -hashfile testtcc.eee                     SHA256 | find /v "successfully"
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Original cross-built LIB on Linux was...
-echo 126e8f331fb032dc59fc6fda3763de47b8cde5e546eb3447d7afd7d229fdca09
+echo ca7ec71366e883e3d2e2d1706f06df7fdc418cfb47b59b422593c169a1cbddcb
 echo Compiler LIBs generated in this build were...
 certutil -hashfile tmpout\petcclib\libpetcc1_64.a  SHA256 | find /v "successfully"
 certutil -hashfile winout\petcclib\libpetcc1_64.a  SHA256 | find /v "successfully"

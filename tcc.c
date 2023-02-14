@@ -25,7 +25,7 @@
 #include "tcctools.c"
 
 static const char help[] =
-    "Tiny C Compiler - Copyright (C) 2001-2022 Fabrice Bellard\n"
+    "Tiny C Compiler - Copyright (C) 2001-2023 Fabrice Bellard\n"
     "Stripped down by Paul Ducklin for use as a learning tool\n"
     "Version "TCC_VERSION" - Generates 64-bit PEs only\n"
     "\n"
@@ -69,7 +69,7 @@ static const char help[] =
     "  -easyfa      'easy' filealign (same as sectalign)\n"
     "  -[no]aslr    set [or unset] ASLR (DYNAMICBASE)        |default set|\n"
     "  -[no]dep     set [or unset] DEP (NXCOMPAT)            |default set|\n"
-    "  -[no]unwind  do [not] generate unwind info (.pdata)   |default no|\n"
+    "  -[no]unwind  do [not] generate unwind info (.pdata)   |default set|\n"
     "  -rdynamic    export all global symbols\n"
     "  -soname      set name for DLL to be used at runtime\n"
     "  -Wl,-opt...  set linker-specific options              |see petcc64 -hh|\n"
@@ -83,7 +83,7 @@ static const char help[] =
     ;
 
 static const char help2[] =
-    "Tiny C Compiler - Copyright (C) 2001-2022 Fabrice Bellard\n"
+    "Tiny C Compiler - Copyright (C) 2001-2023 Fabrice Bellard\n"
     "Stripped down by Paul Ducklin for use as a learning tool\n"
     "Version "TCC_VERSION" - Generates 64-bit PEs only\n"
     "\n"
@@ -103,10 +103,9 @@ static const char help2[] =
     "  -Wp,-opt                      same as -opt\n"
     "  -include file                 include 'file' above each input file\n"
     "  -isystem dir                  add 'dir' to system include path\n"
-    "  -static                       link to static libraries (not recommended)\n"
     "  -dumpversion                  print version\n"
     "  -print-search-dirs            print search paths\n"
-    "  -dt                           with -run/-E: auto-define 'test_...' macros\n"
+    "  -dt                           with -run/-E: auto-define test_... macros\n"
     "\n"
     "Ignored options:\n"
     "  --param -pedantic -pipe -s -tccstd -traditional\n"
@@ -149,7 +148,7 @@ static const char help2[] =
     ;
 
 static const char version[] =
-    "Tiny C Compiler - Copyright (C) 2001-2022 Fabrice Bellard\n"
+    "Tiny C Compiler - Copyright (C) 2001-2023 Fabrice Bellard\n"
     "Stripped down by Paul Ducklin for use as a learning tool\n"
     "Version "TCC_VERSION" - Generates 64-bit PEs only\n"
     ;

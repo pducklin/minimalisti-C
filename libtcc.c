@@ -730,7 +730,7 @@ LIBTCCAPI TCCState *tcc_new(void)
     s->ms_extensions = 1;
     /* PETCC64 - altered defaults */
     s->verbose       = 2; /* show files, includes, libs and EXE section summary */
-    s->pe_unwind     = 0; /* if true, unwind info and .pdata is emitted */ 
+    s->pe_unwind     = 1; /* if true, unwind info and .pdata is emitted */ 
     s->nostdinc      = 1; /* if true, no standard header paths are searched */
     s->nostdlib      = 1; /* if true, no CRT or standard DLLs are linked */
     s->nosysdir      = 0; /* if true, system directory is not added to DLL path */
@@ -975,7 +975,7 @@ ST_FUNC int tcc_add_crt(TCCState *s, const char *filename)
 LIBTCCAPI int tcc_add_library(TCCState *s, const char *libraryname)
 {
     const char *libs[] = { "%s/%s.def", "%s/lib%s.def", "%s/%s.dll", "%s/lib%s.dll", "%s/lib%s.a", "%s/%s", NULL };
-    const char **pp = s->static_link ? libs + 4 : libs;
+    const char **pp = libs;
     while (*pp) {
         if (0 == tcc_add_library_internal(s, *pp,
             libraryname, 0, s->library_paths, s->nb_library_paths))
@@ -1259,7 +1259,6 @@ enum {
     TCC_OPTION_c,
     TCC_OPTION_dumpversion,
     TCC_OPTION_d,
-    TCC_OPTION_static,
     TCC_OPTION_std,
     TCC_OPTION_shared,
     TCC_OPTION_soname,
@@ -1331,7 +1330,6 @@ static const TCCOption tcc_options[] = {
     { "c", TCC_OPTION_c, 0 },
     { "dumpversion", TCC_OPTION_dumpversion, 0},
     { "d", TCC_OPTION_d, TCC_OPTION_HAS_ARG | TCC_OPTION_NOSEP },
-    { "static", TCC_OPTION_static, 0 },
     { "tccstd", TCC_OPTION_std, TCC_OPTION_HAS_ARG | TCC_OPTION_NOSEP },
     { "shared", TCC_OPTION_shared, 0 },
     { "soname", TCC_OPTION_soname, TCC_OPTION_HAS_ARG },
@@ -1601,9 +1599,6 @@ reparse:
                 g_debug = atoi(optarg);
             else
                 goto unsupported_option;
-            break;
-        case TCC_OPTION_static:
-            s->static_link = 1;
             break;
         case TCC_OPTION_std:
     	    /* silently ignore, a current purpose:

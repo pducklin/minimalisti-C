@@ -1069,14 +1069,6 @@ ST_FUNC void tcc_add_runtime(TCCState *s1)
     /* add libc */
     if (!s1->nostdlib) {
         tcc_add_library_err(s1, "c");
-#ifdef TCC_LIBGCC
-        if (!s1->static_link) {
-            if (TCC_LIBGCC[0] == '/')
-                tcc_add_file(s1, TCC_LIBGCC);
-            else
-                tcc_add_dll(s1, TCC_LIBGCC, 0);
-        }
-#endif
         tcc_add_support(s1, TCC_LIBTCC1);
         /* add crt end if not memory output (now always true) */
         tcc_add_crt(s1, "crtn.o");
@@ -1877,15 +1869,15 @@ static void tidy_section_headers(TCCState *s1, int *sec_order)
     }
 
     for_each_elem(symtab_section, 1, sym, ElfW(Sym))
-	if (sym->st_shndx != SHN_UNDEF && sym->st_shndx < SHN_LORESERVE)
-	    sym->st_shndx = backmap[sym->st_shndx];
-    if( !s1->static_link ) {
-        for_each_elem(s1->dynsym, 1, sym, ElfW(Sym))
 	    if (sym->st_shndx != SHN_UNDEF && sym->st_shndx < SHN_LORESERVE)
-	        sym->st_shndx = backmap[sym->st_shndx];
-    }
+	      sym->st_shndx = backmap[sym->st_shndx];
+
+    for_each_elem(s1->dynsym, 1, sym, ElfW(Sym))
+	    if (sym->st_shndx != SHN_UNDEF && sym->st_shndx < SHN_LORESERVE)
+	      sym->st_shndx = backmap[sym->st_shndx];
+
     for (i = 0; i < s1->nb_sections; i++)
-	sec_order[i] = i;
+	    sec_order[i] = i;
     tcc_free(s1->sections);
     s1->sections = snew;
     s1->nb_sections = nnew;
@@ -1912,49 +1904,48 @@ static int elf_output_file(TCCState *s1, const char *filename)
     textrel = 0;
 
     if (file_type != TCC_OUTPUT_OBJ) {
-        /* if linking, also link in runtime libraries (libc, libgcc, etc.) */
-        tcc_add_runtime(s1);
-	resolve_common_syms(s1);
+      /* if linking, also link in runtime libraries (libc, libgcc, etc.) */
+      tcc_add_runtime(s1);
+      resolve_common_syms(s1);
 
-        if (!s1->static_link) {
-            if (file_type == TCC_OUTPUT_EXE) {
-                char *ptr;
-                /* allow override the dynamic loader */
-                const char *elfint = getenv("LD_SO");
-                if (elfint == NULL)
-                    elfint = DEFAULT_ELFINTERP(s1);
-                /* add interpreter section only if executable */
-                interp = new_section(s1, ".interp", SHT_PROGBITS, SHF_ALLOC);
-                interp->sh_addralign = 1;
-                ptr = section_ptr_add(interp, 1 + strlen(elfint));
-                strcpy(ptr, elfint);
-            }
+      if (file_type == TCC_OUTPUT_EXE) {
+          char *ptr;
+          /* allow override the dynamic loader */
+          const char *elfint = getenv("LD_SO");
+          if (elfint == NULL)
+              elfint = DEFAULT_ELFINTERP(s1);
+          /* add interpreter section only if executable */
+          interp = new_section(s1, ".interp", SHT_PROGBITS, SHF_ALLOC);
+          interp->sh_addralign = 1;
+          ptr = section_ptr_add(interp, 1 + strlen(elfint));
+          strcpy(ptr, elfint);
+      }
 
-            /* add dynamic symbol table */
-            s1->dynsym = new_symtab(s1, ".dynsym", SHT_DYNSYM, SHF_ALLOC,
-                                    ".dynstr",
-                                    ".hash", SHF_ALLOC);
-            dynstr = s1->dynsym->link;
+      /* add dynamic symbol table */
+      s1->dynsym = new_symtab(s1, ".dynsym", SHT_DYNSYM, SHF_ALLOC,
+                              ".dynstr",
+                              ".hash", SHF_ALLOC);
+      dynstr = s1->dynsym->link;
 
-            /* add dynamic section */
-            dynamic = new_section(s1, ".dynamic", SHT_DYNAMIC,
-                                  SHF_ALLOC | SHF_WRITE);
-            dynamic->link = dynstr;
-            dynamic->sh_entsize = sizeof(ElfW(Dyn));
+      /* add dynamic section */
+      dynamic = new_section(s1, ".dynamic", SHT_DYNAMIC,
+                            SHF_ALLOC | SHF_WRITE);
+      dynamic->link = dynstr;
+      dynamic->sh_entsize = sizeof(ElfW(Dyn));
 
-            build_got(s1);
+      build_got(s1);
 
-            if (file_type == TCC_OUTPUT_EXE) {
-                bind_exe_dynsyms(s1);
-                if (s1->nb_errors)
-                    goto the_end;
-                bind_libs_dynsyms(s1);
-            } else {
-                /* shared library case: simply export all global symbols */
-                export_global_syms(s1);
-            }
-        }
-        build_got_entries(s1);
+      if (file_type == TCC_OUTPUT_EXE) {
+          bind_exe_dynsyms(s1);
+          if (s1->nb_errors)
+              goto the_end;
+          bind_libs_dynsyms(s1);
+      } else {
+          /* shared library case: simply export all global symbols */
+          export_global_syms(s1);
+      }
+
+      build_got_entries(s1);
     }
 
     /* we add a section for symbols */
@@ -2002,8 +1993,6 @@ static int elf_output_file(TCCState *s1, const char *filename)
         phnum = 0;
     else if (file_type == TCC_OUTPUT_DLL)
         phnum = 3;
-    else if (s1->static_link)
-        phnum = 2;
     else
         phnum = 5;
 
@@ -2049,12 +2038,11 @@ static int elf_output_file(TCCState *s1, const char *filename)
         ret = final_sections_reloc(s1);
         if (ret)
             goto the_end;
-	tidy_section_headers(s1, sec_order);
+            
+	      tidy_section_headers(s1, sec_order);
 
         /* Perform relocation to GOT or PLT entries */
-        if (file_type == TCC_OUTPUT_EXE && s1->static_link)
-            fill_got(s1);
-        else if (s1->got)
+        if (s1->got)
             fill_local_got_entries(s1);
     }
 

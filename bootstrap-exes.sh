@@ -81,7 +81,7 @@ echo ""
 echo "Making source tarball"
 echo "---------------------"
 tar czf petcc64-src.tgz --transform 's/^/petcc64-src\//'   \
-            COPYING LICENSE RELICENSING README.md          \
+            COPYING LICENSE RELICENSING                    \
             bootstrap-exes.sh                              \
             build-exes-with-cl.bat clang-build-exes.bat    \
             *.c *.h *.def include/                         \

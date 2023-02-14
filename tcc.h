@@ -525,7 +525,6 @@ struct TCCState {
     int nostdlib; /* if true, no CRT or standard DLLs are linked */
     int nosysdir; /* if true, system directory is not added to DLL path */
     int nocommon; /* if true, do not use common symbols for .bss data */
-    int static_link; /* if true, static linking is performed */
     int rdynamic; /* if true, all symbols are exported */
     int symbolic; /* if true, resolve symbols in the current module first */
     int alacarte_link; /* if true, only link in referenced objects from archive */
