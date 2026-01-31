@@ -1,7 +1,7 @@
 <p align="center" width="100%"><img width="71%" src="https://github.com/pducklin/minimalisti-C/raw/main/media/minimalistiC-320.png"> 
 
 If you have ever installed the multigigabytes of Visual Studio 
-or mingw-w64 just to compile some test code or a tiny utility, 
+or MINGW64 just to compile some test code or a tiny utility, 
 you will appreciate why this repository is called `minimalisti-C`.
 
 This repository is a curated, stripped-down version of Fabrice Bellard's 
@@ -16,18 +16,19 @@ source code tarball is well under a megabyte, including a handy set of
 test and example code samples.
 
 You can build it on Linux (with Clang or GCC), build it on Windows 
-(with itself, CL or Clang), or **simply unzip the pre-built package
+(with itself, CL or Clang), or **simply unzip the [pre-built package](https://github.com/pducklin/minimalisti-C/releases)
 on Windows**. When built on Linux, you end up with both a Linux-hosted
 cross-compiler and the Windows package as a ZIP file.
 
 ---
 
 To **install on Windows**, simply extract the `petcc64-winbin.zip` 
-file (see the Releases page) into a directory that's on your path. 
-Tiny CC automatically finds its default libraries and include files 
-relative to the location of `PETCC64.EXE`.
+file (see the [Releases](https://github.com/pducklin/minimalisti-C/releases page) 
+into a directory that's on your path. Tiny CC automatically finds 
+its default libraries and include files relative to the location of 
+`petcc64.exe`.
 
-In fact, the only file you absolutely require is `PETCC64.EXE`, if 
+In fact, the only file you absolutely require is `petcc64.exe`, if 
 you can do without the standard include files and libraries (see 
 below).
 
@@ -54,7 +55,7 @@ Visual Studio headers). My provided build scripts are:
 
 ---
 
-Note that, by default, `PETCC64` ignores both its standard libraries 
+Note that, by default, `petcc64` ignores both its standard libraries 
 and its standard include files when compiling and linking. 
 
 So, compiling this `mini.c` file:
@@ -88,7 +89,7 @@ with `-aslr`/`-noaslr`, `-dep`/`-nodep`, and  `-canary`/`-nocanary`.
 
 ---
 
-By default `PETCC64` will use `-nostdinc -nostdlib -nocanary`, 
+By default `petcc64` will use `-nostdinc -nostdlib -nocanary`, 
 which leaves you free to write a truly minimal program.  Simply 
 provide your own `_start()` function and treat it as a low-level 
 Windows entry point.
