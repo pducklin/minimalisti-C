@@ -23,7 +23,7 @@ cross-compiler and the Windows package as a ZIP file.
 ---
 
 To **install on Windows**, simply extract the `petcc64-winbin.zip` 
-file (see the [Releases](https://github.com/pducklin/minimalisti-C/releases page) 
+file (see the [Releases](https://github.com/pducklin/minimalisti-C/releases page))
 into a directory that's on your path. Tiny CC automatically finds 
 its default libraries and include files relative to the location of 
 `petcc64.exe`.
