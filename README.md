@@ -10,7 +10,7 @@ on 64-bit versions of Windows and in UEFI apps.
 
 It will compile and link BootExecute (native) programs, console and
 GUI apps, SYS files (drivers), DLLs (shared libraries), and UEFI apps.
-The Windows [binary release](https://github.com/pducklin/minimalisti-C/releases)
+The ready-to-run Windows [binary release](https://github.com/pducklin/minimalisti-C/releases)
 is about half a megabyte, and the full [source code tarball](https://github.com/pducklin/minimalisti-C/releases)
 is well under a megabyte, including a handy set of `include` files; the compiler,
 linker and library source; and various test and example code samples.
@@ -108,7 +108,8 @@ For example, save this as `plain.c`:
 suppressing the compiler's "function unwind" data (see below) and specifying the
 Windows DLLs you need, like this:
 
-    petcc64.exe -nounwind -pegui plain.c -lkernel32 -luser32
+    > petcc64.exe -nounwind -pegui plain.c -lkernel32 -luser32
+
     Tiny C Compiler - originally Copyright (c) 2001-2004 Fabrice Bellard
     Stripped down by Paul Ducklin for use as a Windows learning tool
     Generates 64-bit Windows ABI code in PE, .o (ELF-style) and .a formats
@@ -135,7 +136,7 @@ you `longjmp`, because leaping from one function into another relies on
 unwinding the stack correctly first.
 
 This minimalist approach means that the only file you actually *need* 
-in order to build useful, working, C programs is the `PETCC64.EXE` 
+in order to build useful, working, C programs is the `petcc64.exe` 
 binary itself.
 
 ---
