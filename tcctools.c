@@ -130,14 +130,14 @@ ST_FUNC int tcc_tool_ar(TCCState *s1, int argc, char **argv)
 
     if ((fh = fopen(argv[i_lib], "wb")) == NULL)
     {
-        fprintf(stderr, "tcc: ar: can't open file %s \n", argv[i_lib]);
+        fprintf(stderr, "petcc64: ar: can't open file %s \n", argv[i_lib]);
         goto the_end;
     }
 
     sprintf(tfile, "%s.tmp", argv[i_lib]);
     if ((fo = fopen(tfile, "wb+")) == NULL)
     {
-        fprintf(stderr, "tcc: ar: can't create temporary file %s\n", tfile);
+        fprintf(stderr, "petcc64: ar: can't create temporary file %s\n", tfile);
         goto the_end;
     }
 
@@ -153,7 +153,7 @@ ST_FUNC int tcc_tool_ar(TCCState *s1, int argc, char **argv)
             continue;
         }
         if ((fi = fopen(argv[i_obj], "rb")) == NULL) {
-            fprintf(stderr, "tcc: ar: can't open file %s \n", argv[i_obj]);
+            fprintf(stderr, "petcc64: ar: can't open file %s \n", argv[i_obj]);
             goto the_end;
         }
         if (verbose)
@@ -170,7 +170,7 @@ ST_FUNC int tcc_tool_ar(TCCState *s1, int argc, char **argv)
         ehdr = (ElfW(Ehdr) *)buf;
         if (ehdr->e_ident[4] != ELFCLASSW)
         {
-            fprintf(stderr, "tcc: ar: Unsupported Elf Class: %s\n", argv[i_obj]);
+            fprintf(stderr, "petcc64: ar: unsupported ELF class: %s\n", argv[i_obj]);
             goto the_end;
         }
 
@@ -360,7 +360,7 @@ usage:
 #endif
     ret = tcc_get_dllexports(file, &p);
     if (ret || !p) {
-        fprintf(stderr, "tcc: impdef: %s '%s'\n",
+        fprintf(stderr, "petcc64: impdef: %s '%s'\n",
             ret == -1 ? "can't find file" :
             ret ==  1 ? "can't read symbols" :
             ret ==  0 ? "no symbols found in" :
@@ -374,7 +374,7 @@ usage:
 
     op = fopen(outfile, "wb");
     if (NULL == op) {
-        fprintf(stderr, "tcc: impdef: could not create output file: %s\n", outfile);
+        fprintf(stderr, "petcc64: impdef: could not create output file: %s\n", outfile);
         goto the_end;
     }
 

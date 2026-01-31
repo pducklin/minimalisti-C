@@ -640,7 +640,7 @@ ST_FUNC void put_stabs_r(const char *str, int type, int other, int desc,
     put_stabs(str, type, other, desc, value);
     put_elf_reloc(symtab_section, stab_section,
                   stab_section->data_offset - sizeof(unsigned int),
-                  R_DATA_32, sym_index);
+                  R_X86_64_32S, sym_index);
 }
 
 ST_FUNC void put_stabn(int type, int other, int desc, int value)
@@ -880,7 +880,7 @@ static struct sym_attr * put_got_entry(TCCState *s1, int dyn_reloc_type,
     char plt_name[100];
     int len;
 
-    need_plt_entry = (dyn_reloc_type == R_JMP_SLOT);
+    need_plt_entry = (dyn_reloc_type == R_X86_64_JUMP_SLOT);
     attr = get_sym_attr(s1, sym_index, 1);
 
     /* In case a function is both called and its address taken 2 GOT entries
@@ -920,8 +920,7 @@ static struct sym_attr * put_got_entry(TCCState *s1, int dyn_reloc_type,
 	       so the types serves as a marker for later (and is retained
 	       also for the final output, which is okay because then the
 	       got is just normal data).  */
-	    put_elf_reloc(s1->dynsym, s1->got, got_offset, R_RELATIVE,
-			  sym_index);
+	    put_elf_reloc(s1->dynsym, s1->got, got_offset, R_X86_64_RELATIVE, sym_index);
 	} else {
 	    if (0 == attr->dyn_index)
                 attr->dyn_index = set_elf_sym(s1->dynsym, sym->st_value, size,
@@ -1027,9 +1026,9 @@ ST_FUNC void build_got_entries(TCCState *s1)
             }
             if (code_reloc(type)) {
             jmp_slot:
-                reloc_type = R_JMP_SLOT;
+                reloc_type = R_X86_64_JUMP_SLOT;
             } else
-                reloc_type = R_GLOB_DAT;
+                reloc_type = R_X86_64_GLOB_DAT;
 
             if (!s1->got)
                 build_got(s1);
@@ -1040,7 +1039,7 @@ ST_FUNC void build_got_entries(TCCState *s1)
             attr = put_got_entry(s1, reloc_type, sym->st_size, sym->st_info,
                                  sym_index);
 
-            if (reloc_type == R_JMP_SLOT)
+            if (reloc_type == R_X86_64_JUMP_SLOT)
                 rel->r_info = ELFW(R_INFO)(attr->plt_sym, type);
         }
     }
@@ -1218,14 +1217,14 @@ static void fill_local_got_entries(TCCState *s1)
 {
     ElfW_Rel *rel;
     for_each_elem(s1->got->reloc, 0, rel, ElfW_Rel) {
-	if (ELFW(R_TYPE)(rel->r_info) == R_RELATIVE) {
+	if (ELFW(R_TYPE)(rel->r_info) == R_X86_64_RELATIVE) {
 	    int sym_index = ELFW(R_SYM) (rel->r_info);
 	    ElfW(Sym) *sym = &((ElfW(Sym) *) symtab_section->data)[sym_index];
 	    struct sym_attr *attr = get_sym_attr(s1, sym_index, 0);
 	    unsigned offset = attr->got_offset;
 	    if (offset != rel->r_offset - s1->got->sh_addr)
 	      tcc_error_noabort("huh");
-	    rel->r_info = ELFW(R_INFO)(0, R_RELATIVE);
+	    rel->r_info = ELFW(R_INFO)(0, R_X86_64_RELATIVE);
 #if SHT_RELX == SHT_RELA
 	    rel->r_addend = sym->st_value;
 #else
@@ -1282,7 +1281,7 @@ static void bind_exe_dynsyms(TCCState *s1)
                                         esym->st_info, 0, bss_section->sh_num,
                                         name);
 
-                    /* Ensure R_COPY works for weak symbol aliases */
+                    /* Ensure R_X86_64_COPY works for weak symbol aliases */
                     if (ELFW(ST_BIND)(esym->st_info) == STB_WEAK) {
                         for_each_elem(s1->dynsymtab_section, 1, dynsym, ElfW(Sym)) {
                             if ((dynsym->st_value == esym->st_value)
@@ -1298,7 +1297,7 @@ static void bind_exe_dynsyms(TCCState *s1)
                     }
 
                     put_elf_reloc(s1->dynsym, bss_section,
-                                  offset, R_COPY, index);
+                                  offset, R_X86_64_COPY, index);
                     offset += esym->st_size;
                     bss_section->data_offset = offset;
                 }

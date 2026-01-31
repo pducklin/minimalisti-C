@@ -1,17 +1,23 @@
 <p align="center" width="100%"><img width="71%" src="https://github.com/pducklin/minimalisti-C/raw/main/media/minimalistiC-320.png"> 
-    
-This is a stripped-down version of Fabrice Bellard's Tiny CC 
-compiler.
 
-This version generates 64-bit PE files only, as used on 64-bit 
-versions of Windows. 
+If you have ever installed the multigigabytes of Visual Studio 
+or mingw-w64 just to compile some test code or a tiny utility, 
+you will appreciate why this repository is called `minimalisti-C`.
+
+This repository is a curated, stripped-down version of Fabrice Bellard's 
+Tiny CC compiler. This version generates 64-bit PE files only, as used 
+on 64-bit versions of Windows and in UEFI apps.
 
 It will compile and link BootExecute (native) programs, console and
-GUI apps, SYS files (drivers), and DLLs (shared libraries).
+GUI apps, SYS files (drivers), DLLs (shared libraries), and UEFI apps.
+The Windows binary release file is about half a megabyte, and the full
+source code tarball is well under a megabyte, including a handy set of
+`include` files; the compiler, linker and library source; and various 
+test and example code samples.
 
 You can build it on Linux (with Clang or GCC), build it on Windows 
-(with itself, CL or Clang), or simply install the pre-built package
-on Windows. When built on Linux, you end up with both a Linux-hosted
+(with itself, CL or Clang), or **simply unzip the pre-built package
+on Windows**. When built on Linux, you end up with both a Linux-hosted
 cross-compiler and the Windows package as a ZIP file.
 
 ---
@@ -39,15 +45,16 @@ To choose a specific C compiler, try something like:
 ---
 
 To **compile on Windows**, open a command prompt with environment 
-variables configured for your compiler of choice (we've tried CL 
-from the latest Visual Studio and Clang for Windows) and use one of:
+variables configured for your compiler of choice (I've tried CL 
+from the latest Visual Studio and Clang for Windows with the 
+Visual Studio headers). My provided build scripts are:
 
     > build-exes-with-cl.bat
     > clang-build-exes.bat
 
 ---
 
-Note that by default, `PETCC64` ignores both its standard libraries 
+Note that, by default, `PETCC64` ignores both its standard libraries 
 and its standard include files when compiling and linking. 
 
 So, compiling this `mini.c` file:
@@ -67,63 +74,26 @@ So, compiling this `mini.c` file:
     mini.c:1: error: include file 'stdio.h' not found
 
 You can tell the compiler to use its own collection of standard
-includes (fairly broad, and often sufficient) like this:
+include files (fairly broad, and often sufficient), and to link 
+with a standard set of libraries, like this:
 
-    > petcc64 -stdinc mini.c
+    > petcc64 -std mini.c
 
-Of course, without the standard libraries and startup code, you'll
-now get something like this:
+When you use `-std`, your C code is compiled with DEP and ASLR,
+and with the canary-based stack protector turned on (similar to 
+Microsoft's /GS option). 
 
-    -> mini.c
-    -> c:/users/duck/petccinc/stdio.h
-    ->  c:/users/duck/petccinc/_mingw.h
-    ->   c:/users/duck/petccinc/stddef.h
-    ->   c:/users/duck/petccinc/stdarg.h
-    ->  c:/users/duck/petccinc/vadefs.h
-    ->  c:/users/duck/petccinc/sec_api/stdio_s.h
-    ->   c:/users/duck/petccinc/stdio.h
-    tcc: error: undefined symbol 'printf'
-    tcc: error: undefined symbol '_start'
-
-...because the linker can't find the low-level entry point function
-`_start`.
-
-You need to be explicit about what other compilers do by default:
-
-    > petcc64 -stdinc -stdlib mini.c
-    -> mini.c
-    -> c:/users/duck/petccinc/stdio.h
-    ->  c:/users/duck/petccinc/_mingw.h
-    ->   c:/users/duck/petccinc/stddef.h
-    ->   c:/users/duck/petccinc/stdarg.h
-    ->  c:/users/duck/petccinc/vadefs.h
-    ->  c:/users/duck/petccinc/sec_api/stdio_s.h
-    ->   c:/users/duck/petccinc/stdio.h
-    -> c:/users/duck/petcclib/libpetcc1_64.a
-    -> C:/Windows/system32/msvcrt.dll
-    -> C:/Windows/system32/kernel32.dll
-    -------------------------------
-      virt   file   size  section
-      1000    200    118  .text
-      2000    400    144  .data
-      3000    600     18  .pdata
-    -------------------------------
-    <- mini.exe (2048 bytes)
+You can manually control these compile and link-time settings
+with `-aslr`/`-noaslr`, `-dep`/`-nodep`, and  `-canary`/`-nocanary`.
 
 ---
 
-`PETCC64` is fairly verbose by default, in order to show you exactly
-which header files, libraries and so on are used. Note above that 
-the linker automatically looks in `msvcrt.dll` and `kernel32.dll` for
-common system functions (no need for `.DEF` or `.LIB` files!), adding
-`user32.dll` and `gdi32.dll` if you use the option `-pegui` to create 
-a Windows GUI app instead of a default console executable.
+By default `PETCC64` will use `-nostdinc -nostdlib -nocanary`, 
+which leaves you free to write a truly minimal program.  Simply 
+provide your own `_start()` function and treat it as a low-level 
+Windows entry point.
 
-The reason for having `-nostdinc` and `-nostdlib` as defaults is for
-minimalism. You can simply provide your own `_start()` function and
-treat it as a standard Windows entry point.
-
-Save this as `plain.c`:
+For example, save this as `plain.c`:
 
     int  MessageBoxA(void* hwnd, char* msg, char* hdr, unsigned dat);
     void ExitProcess(unsigned code);
@@ -133,34 +103,35 @@ Save this as `plain.c`:
        ExitProcess(0);
     }
 
-...and you can build a 2048-byte demo program like this:
+...and you can build a super-stripped down 1536-byte demo program by explicitly
+suppressing the compiler's "function unwind" data (see below) and specifying the
+Windows DLLs you need, like this:
 
-    > petcc64 -pegui plain.c -lkernel32 -luser32
+    petcc64.exe -nounwind -pegui plain.c -lkernel32 -luser32
+    Tiny C Compiler - originally Copyright (c) 2001-2004 Fabrice Bellard
+    Stripped down by Paul Ducklin for use as a Windows learning tool
+    Generates 64-bit Windows ABI code in PE, .o (ELF-style) and .a formats
+    Version petcc64-0.9.27 [build 0048] (2026-01-31T14:32:52Z)
+
     -> plain.c
-    -> c:/users/duck/petcclib/libpetcc1_64.a
-    -> C:/Windows/system32/kernel32.dll
-    -> C:/Windows/system32/user32.dll
     -------------------------------
       virt   file   size  section
       1000    200     68  .text
       2000    400     d0  .data
-      3000    600      c  .pdata
     -------------------------------
-    <- plain.exe (2048 bytes)
+    <- plain.exe (1536 bytes)
 
 Don't forget to use `-pegui` when creating a non-console app, or the
 compiled EXE will run command-line style, as a sub-process of the 
 program you started it from, rather than as a standalone process in
 its own right.
 
-You can strip the EXE down even further by using `-unwind` to omit
-the `.pdata` section, which contains the "function unwind" data 
-needed for debugging and exception handling. Note, however, that 
-you must have unwind data in 64-bit Windows programs that use C's 
-`longjmp()` function or else your code will exit when you `longjmp`.
-
-To show only the filenames compiled (no headers and build summary),
-us the `-v` (regular verbosity) option; for a quiet build, use `-v0`.
+Above, we used the `-unwind` option to omit the `.pdata` section, which
+contains the "function unwind" data needed for debugging and proper exception
+handling. Note that you must have unwind data in 64-bit Windows programs 
+that use C's `longjmp()` function. If you don't, your code will exit when 
+you `longjmp`, because leaping from one function into another relies on
+unwinding the stack correctly first.
 
 This minimalist approach means that the only file you actually *need* 
 in order to build useful, working, C programs is the `PETCC64.EXE` 

@@ -805,8 +805,8 @@ void gfunc_call(int nb_args)
     vtop--;
 }
 
-
-#define FUNC_PROLOG_SIZE 11
+#define FRAME_PROLOG   (11)
+#define CANARY_PROLOG  (14)  // verify these against code emitted in _epilog
 
 /* generate function prolog of type 't' */
 void gfunc_prolog(CType *func_type)
@@ -821,7 +821,8 @@ void gfunc_prolog(CType *func_type)
     loc = 0;
 
     addr = PTR_SIZE * 2;
-    ind += FUNC_PROLOG_SIZE;
+    ind += FRAME_PROLOG; // space to save and set up RBP
+    if (g_canary) { ind += CANARY_PROLOG; } // and for canary setup if needed
     func_sub_sp_offset = ind;
     reg_param_index = 0;
 
@@ -881,6 +882,25 @@ void gfunc_epilog(void)
 {
     int v, saved_ind;
 
+    // {
+    //     now done as a function call to save space */
+    //     o(0xF84D8B48);             /* 48:8B4D F8   mov rcx, [rbp-8]        */ 
+    //     o(0xE13148);               /* 48:31E1      xor rcx,rsp             */
+    //     o(0x0D3B48); gen_le32(0);  /* 48:3B0D xxxx cmp rcx, ds:[xxxxxxxx]  */
+    //     Sym *sym = external_global_sym(TOK___canary, &size_type, 0);
+    //     greloca(cur_text_section, sym, ind-4, R_X86_64_PC32, -4);    
+    //     o(0x0774);                 /* 74 07        je  $OK                 */   
+    //     o(0xB9); gen_le32(2);      /* B9 02000000  mov ecx, 2 (dud canary) */   
+    //     o(0x29CD);                 /* CD 29        int 0x29 (fast-fail)    */  
+    // } // £££                       /* $OK:         ...or continue here     */
+
+    if (g_canary) {
+        o(0xE8); gen_le32(0);
+        Sym *sym = external_global_sym(TOK___canary_chk, &size_type, 0);
+        greloca(cur_text_section, sym, ind-4, R_X86_64_PC32, -4);           
+    }
+
+    /* return to calling function */
     o(0xc9); /* leave */
     if (func_ret_sub == 0) {
         o(0xc3); /* ret */
@@ -890,24 +910,43 @@ void gfunc_epilog(void)
         g(func_ret_sub >> 8);
     }
 
+    // get ready to go back in the code to emit the needed prolog 
+    // instructions, now we know how much local variable space to reserve
     saved_ind = ind;
-    ind = func_sub_sp_offset - FUNC_PROLOG_SIZE;
+    // go back to where the code of the function started
+    ind = func_sub_sp_offset;
+    // then always go back FRAME_PROLOG bytes for RBP setup
+    ind -= FRAME_PROLOG;
+    // and back another CANARY_PROLOG bytes if stack guarding is enabled
+    if (g_canary) { ind -= CANARY_PROLOG; }
+
     /* align local size to word & save local variables */
     func_scratch = (func_scratch + 15) & -16;
     v = (func_scratch + -loc + 15) & -16;
 
+    /* save frame pointer and make space for locals (directly or indirectly) */
     if (v >= 4096) {
         Sym *sym = external_global_sym(TOK___chkstk, &func_old_type, 0);
         oad(0xb8, v); /* mov stacksize, %eax */
         oad(0xe8, 0); /* call __chkstk, (does the stackframe too) */
         greloca(cur_text_section, sym, ind-4, R_X86_64_PC32, -4);
-        o(0x90); /* fill for FUNC_PROLOG_SIZE = 11 bytes */
+        o(0x90); /* extra byte to fill FRAME_PROLOG */
     } else {
         o(0xe5894855);  /* push %rbp, mov %rsp, %rbp */
         o(0xec8148);  /* sub rsp, stacksize */
         gen_le32(v);
     }
 
+    if (g_canary) {
+        /* also compute and store canary to guard stack if enabled  */
+        /* (this needs CANARY_PROLOG more bytes of code, see above) */
+        o(0x058B48); gen_le32(0);   /* 48:8B05 xxxx  mov rax, ds:[xxxx]   */  
+        Sym *sym = external_global_sym(TOK___canary, &size_type, 0);
+        greloca(cur_text_section, sym, ind-4, R_X86_64_PC32, -4);    
+        o(0xE03148);                /* 48:31E0         xor rax,rsp        */
+        o(0xF8458948);              /* 48:8945 F8      mov ss:[rbp-8],rax */
+    }     
+    
     /* add the "func_scratch" area after each alloca seen */
     while (func_alloca) {
         unsigned char *ptr = cur_text_section->data + func_alloca;
@@ -915,6 +954,7 @@ void gfunc_epilog(void)
         write32le(ptr, func_scratch);
     }
 
+    // now fast-forward our code-emission point to the end this function
     cur_text_section->data_offset = saved_ind;
     pe_add_unwind_data(ind, saved_ind, v);
     ind = cur_text_section->data_offset;

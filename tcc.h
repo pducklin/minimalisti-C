@@ -231,21 +231,13 @@ extern long double strtold (const char *__nptr, char **__endptr);
 
 /* -------------------------------------------- */
 
-#if PTR_SIZE == 8
 # define ELFCLASSW ELFCLASS64
 # define ElfW(type) Elf##64##_##type
 # define ELFW(type) ELF##64##_##type
 # define ElfW_Rel ElfW(Rela)
 # define SHT_RELX SHT_RELA
 # define REL_SECTION_FMT ".rela%s"
-#else
-# define ELFCLASSW ELFCLASS32
-# define ElfW(type) Elf##32##_##type
-# define ELFW(type) ELF##32##_##type
-# define ElfW_Rel ElfW(Rel)
-# define SHT_RELX SHT_REL
-# define REL_SECTION_FMT ".rel%s"
-#endif
+
 /* target address type */
 #define addr_t ElfW(Addr)
 #define ElfSym ElfW(Sym)
@@ -666,6 +658,7 @@ struct TCCState {
     int pe_unwind;
     int pe_aslr;
     int pe_dep;
+    int pe_heva;
     Section *uw_pdata;
     int uw_sym;
     unsigned uw_offs;
@@ -1144,6 +1137,8 @@ ST_DATA int func_vc;
 ST_DATA int last_line_num, last_ind, func_ind; /* debug last line number and pc */
 ST_DATA const char *funcname;
 ST_DATA int g_debug;
+
+ST_DATA int g_canary; /* This is visible everywhere for use throughout code generation*/
 
 ST_FUNC void tcc_debug_start(TCCState *s1);
 ST_FUNC void tcc_debug_end(TCCState *s1);

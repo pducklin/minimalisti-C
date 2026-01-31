@@ -1,6 +1,6 @@
 @echo off
 
-set CCOPT=
+__CCOPT__
 
 echo:
 echo -0----REMOVE OLD BUILD FILES------------------------------------
@@ -127,14 +127,14 @@ echo -6----CROSS-CHECK BUILD SHA256SUMS------------------------------
 echo Comparing hashes of Linux build and new files...
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Original cross-built EXE on Linux was...
-echo 02e9d5c596cb6b6a3dc7852be2d0f5a8f1034e69c5530a8770829a752c629537
+echo __SHAPE__
 echo Compiler EXEs generated with TCC code were...
 certutil -hashfile tmpout\tcc.out.exe              SHA256 | find /v "successfully"
 certutil -hashfile winout\petcc64.exe              SHA256 | find /v "successfully"
 certutil -hashfile testtcc.eee                     SHA256 | find /v "successfully"
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Original cross-built LIB on Linux was...
-echo 9b547da5444efc26cac89108e38d22bc9ac51d854a7171b6bc1eb75e088c0621
+echo __SHALD__
 echo Compiler LIBs generated in this build were...
 certutil -hashfile tmpout\petcclib\libpetcc1_64.a  SHA256 | find /v "successfully"
 certutil -hashfile winout\petcclib\libpetcc1_64.a  SHA256 | find /v "successfully"

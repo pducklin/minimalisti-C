@@ -592,7 +592,7 @@ static void asm_parse_directive(TCCState *s1, int global)
             init_str = tok_str_alloc();
             while (next(), tok != TOK_ASMDIR_endr) {
                 if (tok == CH_EOF)
-                    tcc_error("we at end of file, .endr not found");
+                    tcc_error("at end of file, .endr not found");
                 tok_str_add_tok(init_str);
             }
             tok_str_add(init_str, -1);

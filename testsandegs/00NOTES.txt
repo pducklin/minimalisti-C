@@ -1,0 +1,385 @@
+TESTJENKINS.EXE
+
+As the code explains, this program uses Bob Jenkins's 
+excellent 64-bit non-cryptographic PRNG, implemented
+in both C and PETCC64-style assembler, doing three lots
+of 1.4 billion calls to the random generator code.
+
+(Inspect the source files to see what PETCC64 assembler code
+looks like. If you are used to Windows assemblers, you may be
+disappointed to find out that this one uses AT&T-style back-
+to-front syntax with its weird "sigil" tags. See guardstk.S 
+for some code in this style. You can happily ignore this 
+suggestion if you aren't an assembler buff.)
+
+Compile both files into one .EXE in one go:
+
+> petcc64 -std testjenkins.c testjenkasm.S
+
+You should get this (your timings will vary, of course):
+
+---cut here---
+> testjenkins.exe
+Using Bob Jenkins's excellent 64-bit non-cryptographic PRNG
+(See https://burtleburtle.net/bob/rand/smallprng.html)
+Tries out function pointers, lots of 64-bit arithmetic,
+and functions implemented in C and PETCC64-style ASM.
+Seeding with:                   0x013579BDF02468AC
+Adding up:                      1414213562 successive outputs (a few seconds)
+Expecting:                      0xC031283C71264F05
++ Reference C code got:         0xC031283C71264F05 (took 6.342 seconds)
++ Transliterated ASM code got:  0xC031283C71264F05 (took 2.511 seconds)
++ Lightly-tweaked ASM code got: 0xC031283C71264F05 (took 2.433 seconds)
++ OK
+---cut here---
+
+=====================================
+
+TESTLEIBNIZ.EXE
+
+This does lots of loops of floating-point computation to
+estimate pi using a splendidly simple formula from Gottfried 
+Wilhelm Leibniz. It converges gloriously slowly. The output
+is checked against GCC-compiled code that was run on Linux.
+
+> petcc64 -std testleibniz.c
+
+The program should say something like this, though your 
+speeds will differ:
+
+---cut here---
+> testleibniz.exe
+Test floating point calculation using Leibniz's famously simple
+formula pi/4 = 1 - 1/3 + 1/5 - 1/7 + 1/9 - 1/11 + ... and so on.
+Converges slowly, and needs exponentially more time for each
+additional digit of precision. Gets to about 9 significant
+digits (8 decimal places) in this test with 7 billion terms.
+Terms to use in formula: 7000000000 (several seconds)
++ 3.28373848373848 (     182 microsec) after 7 terms
++ 3.12730766798123 (     420 microsec) after 70 terms
++ 3.14016408289008 (     657 microsec) after 700 terms
++ 3.14144979644766 (     895 microsec) after 7000 terms
++ 3.14157836787548 (    1388 microsec) after 70000 terms
++ 3.14159122501826 (    3085 microsec) after 700000 terms
++ 3.14159251073260 (   17736 microsec) after 7000000 terms
++ 3.14159263930424 (  168302 microsec) after 70000000 terms
++ 3.14159265216006 ( 1620799 microsec) after 700000000 terms
++ 3.14159265344534 (16374553 microsec) after 7000000000 terms
++ OK
+---cut here---
+
+=====================================
+
+TESTAESTINY.EXE
+
+A compact open-source implementation of the AES-128-ECB 
+cipher used with four official test vectors from the US
+National Institute of Standards and Technology (NIST), and
+for scrambling and unscrambling a longer series of loops.
+
+> petcc64 -std testaestiny.c
+
+Then check that it works, and compare your timings with mine.
+Unusually for symmetric encryption, unoptimised AES code for
+decryption is slower than encryption, because of the way the
+algorithm works:
+
+---cut here---
+> testaestiny.exe
+NIST AES-128-ECB test vectors:
++ test 1: encrypted OK, decrypted OK
++ test 2: encrypted OK, decrypted OK
++ test 3: encrypted OK, decrypted OK
++ test 4: encrypted OK, decrypted OK
+345677 looped 1-block encryptions with key 'sixteenbyteslong'
+starting with:           'SIXTEENBYTESLONG'
+should get to:           DCE0CE0449476C9A0F08DE4544553567
++ encryption reached:    DCE0CE0449476C9A0F08DE4544553567 (0.44 secs)
++ decryption rewound to: 'SIXTEENBYTESLONG' (4.42 secs)
++ OK
+---cut here---
+
+=====================================
+
+TESTSIZES.EXE
+
+This is a handy file for reminding yourself what the byte
+sizes of various standard C types are, and which special
+type names are available in PETCC64's <stdint.h>. If you
+are used to 64-bit Linux, note that Windows does things a bit
+differently, so that 'int' and 'long int' are the same size,
+at 32 bits (4 bytes) each. If you want 64 bits, you need to
+remember to use 'long long', or one of the xxx64_t types.
+Pointers and their integer equivalent size_t are 64 bits.
+Also, unlike other environments you may have used or tried,
+'double' and 'long double' are the same, at 8 bytes each.
+
+> petcc64 -std testsizes.c
+
+Check that you get this:
+
+---cut here---
+> testsizes.exe
++ char                     -> 1 bytes
++ short int                -> 2 bytes
++ int                      -> 4 bytes
++ long int                 -> 4 bytes
++ long long int            -> 8 bytes
+
++ int8_t                   -> 1 bytes
++ int16_t                  -> 2 bytes
++ int32_t                  -> 4 bytes
++ int64_t                  -> 8 bytes
++ ssize_t                  -> 8 bytes
+
++ unsigned char            -> 1 bytes
++ unsigned short int       -> 2 bytes
++ unsigned int             -> 4 bytes
++ unsigned long int        -> 4 bytes
++ unsigned long long int   -> 8 bytes
+
++ uint8_t                  -> 1 bytes
++ uint16_t                 -> 2 bytes
++ uint32_t                 -> 4 bytes
++ uint64_t                 -> 8 bytes
++ size_t                   -> 8 bytes
+
++ void*                    -> 8 bytes
+
++ float                    -> 4 bytes
++ double                   -> 8 bytes
++ long double              -> 8 bytes
+
++ char c[5]                -> 5 bytes
++ char c[5][3]             -> 15 bytes
++ int  i[5]                -> 20 bytes
++ int  i[5][3]             -> 60 bytes
+
++ OK
+---cut here---
+
+=====================================
+
+OCC-12DAYS.EXE
+
+This is a splendidly weird torture test for any C compiler.
+It's also a fun file to show your friends and ask casually,
+"What does this code do?" (Some of them may pretend to think
+about it and then cleverly say, "Does it print a that famous
+Christmas song?" to impress you. The honest ones will admit
+they know that because they've seen it before. It won an 
+Obfuscated C Competition prize very many years ago.)
+
+Compile like this:
+
+> petcc64 -stc occ-12days.c
+
+And, perhaps to your amazement, you should get this:
+
+---cut here---
+> 0cc-12days.exe
+On the first day of Christmas my true love gave to me
+a partridge in a pear tree.
+
+On the second day of Christmas my true love gave to me
+two turtle doves
+and a partridge in a pear tree.
+
+On the third day of Christmas my true love gave to me
+three french hens, two turtle doves
+and a partridge in a pear tree.
+
+On the fourth day of Christmas my true love gave to me
+four calling birds, three french hens, two turtle doves
+and a partridge in a pear tree.
+
+On the fifth day of Christmas my true love gave to me
+five gold rings;
+four calling birds, three french hens, two turtle doves
+and a partridge in a pear tree.
+
+On the sixth day of Christmas my true love gave to me
+six geese a-laying, five gold rings;
+four calling birds, three french hens, two turtle doves
+and a partridge in a pear tree.
+
+On the seventh day of Christmas my true love gave to me
+seven swans a-swimming,
+six geese a-laying, five gold rings;
+four calling birds, three french hens, two turtle doves
+and a partridge in a pear tree.
+
+On the eighth day of Christmas my true love gave to me
+eight maids a-milking, seven swans a-swimming,
+six geese a-laying, five gold rings;
+four calling birds, three french hens, two turtle doves
+and a partridge in a pear tree.
+
+On the ninth day of Christmas my true love gave to me
+nine ladies dancing, eight maids a-milking, seven swans a-swimming,
+six geese a-laying, five gold rings;
+four calling birds, three french hens, two turtle doves
+and a partridge in a pear tree.
+
+On the tenth day of Christmas my true love gave to me
+ten lords a-leaping,
+nine ladies dancing, eight maids a-milking, seven swans a-swimming,
+six geese a-laying, five gold rings;
+four calling birds, three french hens, two turtle doves
+and a partridge in a pear tree.
+
+On the eleventh day of Christmas my true love gave to me
+eleven pipers piping, ten lords a-leaping,
+nine ladies dancing, eight maids a-milking, seven swans a-swimming,
+six geese a-laying, five gold rings;
+four calling birds, three french hens, two turtle doves
+and a partridge in a pear tree.
+
+On the twelfth day of Christmas my true love gave to me
+twelve drummers drumming, eleven pipers piping, ten lords a-leaping,
+nine ladies dancing, eight maids a-milking, seven swans a-swimming,
+six geese a-laying, five gold rings;
+four calling birds, three french hens, two turtle doves
+and a partridge in a pear tree.
+---cut here---
+
+=====================================
+
+TESTDEBUG.EXE
+
+This is a surprisingly useful little example of how to use 
+the Windows process debugging API. I wrote it to help me test
+the stack canary protection, because it's hard to check that
+stack overflows were correctly blocked. That's because they
+use the Windows fastfail system (a call to int 0x29) to exit 
+silently and abruptly, precisely to avoid making API calls 
+to print warning messages when the whole point is to get out
+as cleanly and as quickly possible. After all, a corrupted
+stack canary may mean that an exploit was blocked, but could
+indicate that something bad *already happened*. 
+
+It runs another program (without arguments) and reports back
+how it ended, correctly diagnosing a range of problems. The
+return code is set as follows:
+
+errorlevel 0 means nothing was trapped by this program
+errorlevel 1 means a "0xC-severity" exception was caught (e.g. ran out of stack)
+errorlevel 2 if it was a fastfail(2), meaning a canary detected a buffer overrun exploit
+errorlevel 5 if it was an access violation (e.g. code exploit thwarted by ASLR)
+errorlevel 7 if it was a fastfail(7), deliberately triggered to prove an exploit
+
+I deliberately use the unofficial fastfail code 7 in my 
+canary-testing code (see below) to denote that my attempted
+code execution exploit actually worked. (There isn't really
+a safe way to exit normally after corrupting the stack.)
+
+> petcc64 -std testdebug.exe
+
+Now run a well-behaved program from earlier, such as the
+testjenkins.exe gigaloop extravaganza, and check that it
+seems to run as you would expect:
+
+---cut here---
+> testdebug.exe testjenkins.exe
+***running testjenkins.exe
+Using Bob Jenkins's excellent 64-bit non-cryptographic PRNG
+[output as before]
++ OK
+***   process exited
+***finished
+---cut here---
+
+=====================================
+
+TESTCANARY.EXE
+
+Now we can use TESTDEBUG.EXE to experiment with PETCC64 stack
+protection. Turn it on at compile time (C functions only) by
+adding the command-line option -canary. (If you use -std to
+get standard build-time includes and libraries, it's turned
+on for you, so use -nocanary if you need to force it off.)
+It's like Visual Studio's /GS (stack guard), except that
+it doesn't reorder local variables to keep buffers and 
+pointers apart, because that's hard in a one-pass compiler;
+and it always adds the canary checking code, even to
+functions with no local variable buffers to exploit.
+
+Compile this program without any canary protection, and 
+without ASLR (which correctly prevents my trivial exploit 
+from working properly, and should never usually be turned
+off in real life):
+
+> petcc64 -std -nocanary -noaslr testcanary.c
+
+Run this dodgy program under TESTDEBUG's control. The nature
+of the exploit should be quite obvious if you inspect the 
+code - it's triggered (and explained) in the function 
+bodgeit(). As mentioned above, I deliberately fastfail if the
+exploit actually works, to get out of the program safely.
+The text starting "!!!" should show up in red:
+
+---cut here---
+> testdebug.exe testcanary.exe
+***running testcanary.exe
+testcanary-> ASLR:       NO
+testcanary-> Canaries:   NO
+testcanary-> Code start: 0x0000000003301000
+testcanary-> Bodged the stack buffer, about to return
+testcanary-> !!! reached ox1000() due to undetected stack exploit
+***   exception 0xC0000409 (FAST_FAIL)
+***      RIP = 0x0000000003301022
+***      RSP = 0x000000000014FE98
+***      RBP = 0x000000000014FEB8
+***      RCX = 0x0000000000000007 (FATAL_APP_EXIT - deliberately triggered to prove exploit worked)
+***   process exited
+***finished
+---cut here---
+
+Right. Now let's keep ASLR turned off, so that it won't stop
+the exploit, but let's turn -canary on and trust our safety
+to that :-) Recompile thus:
+
+> petcc64 -std -canary -noaslr testcanary.c
+
+Now you should get:
+
+---cut here---
+> testdebug.exe testcanary.exe
+***running testcanary.exe
+testcanary-> ASLR:       NO
+testcanary-> Canaries:   YES
+testcanary-> Code start: 0x0000000003301000
+testcanary-> Bodged the stack buffer, about to return
+***   exception 0xC0000409 (FAST_FAIL)
+***      RIP = 0x0000000003301311
+***      RSP = 0x000000000014FE78
+***      RBP = 0x000000000014FEB0
+***      RCX = 0x0000000000000002 (STACK_COOKIE_CHECK_FAILURE - caught by canary)
+***   process exited
+***finished
+---cut here---
+
+That shows that the stack protector was compiled in, and that
+it worked. The performance overhead is quite modest, so you
+might as well leave it on all the time. 
+
+When compiling the PETCC64 program itself, you will notice 
+from the Linux bootstrap script and the Windows .BAT files
+that the library code is compiled with -nocanary.
+
+That's because: [A] most of the library startup code versions
+don't return, making a canary pointless (DLLs and UEFI apps
+are the obvious execeptions), because they call exit()
+instead; and [B] we do a one-time initialisation of the stack
+canary value in the _start() functions, so if they set their
+own canary at the outset of the program, they would always
+fastfail at the end, because the canary would have changed
+underneath them. The tinyc_canary_init() function uses the
+RDRAND instruction if it's available, or a less random way
+of generating 64 bits of one-time canary data if not. See the
+guardstk.S source file for further information.
+
+=====================================
+
+
+

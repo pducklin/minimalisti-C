@@ -1,63 +1,78 @@
 
 # Use CC= environment variable 
 # to change bootstrap compiler
+#
+# CCOPT=... will be added to each
+# cross-compile command, e.g. '-g'
 #-----------------------------
-USECC=${CC:-gcc}
+
+USECC=${CC:-clang}
 
 
 echo "Removing old build files"
 echo "------------------------"
-for f in lib/*.o; do rm $f; done
 test -f build-exes-with-cl.bat && rm build-exes-with-cl.bat
+test -f clang-build-exes.bat   && rm clang-build-exes.bat
 test -f petcc64-src.tgz        && rm petcc64-src.tgz
 test -f petcc64-winbin.zip     && rm petcc64-winbin.zip
 test -d linout/                && rm -r linout/
 test -d winout/                && rm -r winout/
+test -d tmpout/                && rm -r tmpout/
 
 mkdir linout/
 mkdir winout/
+mkdir tmpout/
 mkdir winout/petcclib
 mkdir winout/petccinc
 
 echo ""
 
 
-echo "Building bootstrapper compiler 'linout/a64.out' with $USECC"
-echo "-----------------------------------------------------------"
-$USECC -Wno-pointer-sign -o linout/a64.out tcc.c
-
+echo "Building bootstrapper compiler 'linout/petcc64' with $USECC"
+echo "----------------------------------------------------------"
+$USECC $CCOPT -Wno-pointer-sign -o linout/petcc64 tcc.c
 echo ""
 
 
-echo "Cross-compiling 'winout/lib/libtcc1_64.a' with linout/a64.out"
+echo "Cross-compiling 'winout/lib/libtcc1_64.a' with linout/petcc64"
 echo "-------------------------------------------------------------"
-linout/a64.out -v -I include -o lib/crt1.o        -c lib/crt1.c 
-linout/a64.out -v -I include -o lib/crt1w.o       -c lib/crt1w.c 
-linout/a64.out -v -I include -o lib/wincrt1.o     -c lib/wincrt1.c 
-linout/a64.out -v -I include -o lib/wincrt1w.o    -c lib/wincrt1w.c 
-linout/a64.out -v -I include -o lib/dllcrt1.o     -c lib/dllcrt1.c 
-linout/a64.out -v -I include -o lib/dllmain.o     -c lib/dllmain.c 
-linout/a64.out -v -I include -o lib/chkstk.o      -c lib/chkstk.S 
-linout/a64.out -v -I include -o lib/alloca86_64.o -c lib/alloca86_64.S 
-linout/a64.out -v -I include -o lib/libtcc1.o     -c lib/libtcc1.c 
+# the -nocanary ensures that all C functions here are safe for calling tinyc_canary_init()
+# (strictly speaking only the *crt*.c) files with xxxstart() functions inside need it)
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/crt1.o        -c lib/crt1.c 
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/crt1w.o       -c lib/crt1w.c 
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/wincrt1.o     -c lib/wincrt1.c 
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/wincrt1w.o    -c lib/wincrt1w.c 
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/dllcrt1.o     -c lib/dllcrt1.c 
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/dllmain.o     -c lib/dllmain.c 
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/chkstk.o      -c lib/chkstk.S 
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/alloca86_64.o -c lib/alloca86_64.S 
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/guardstk.o    -c lib/guardstk.S
+linout/petcc64 $CCOPT -v -nocanary -I include -o tmpout/libtcc1.o     -c lib/libtcc1.c 
 
-linout/a64.out -v -ar winout/petcclib/libpetcc1_64.a    \
-              lib/crt1.o            lib/crt1w.o         \
-              lib/wincrt1.o         lib/wincrt1w.o      \
-              lib/dllcrt1.o         lib/dllmain.o       \
-              lib/chkstk.o          lib/alloca86_64.o   \
-              lib/libtcc1.o                             \
+linout/petcc64 -v -ar winout/petcclib/libpetcc1_64.a    \
+                        tmpout/crt1.o                   \
+                        tmpout/crt1w.o                  \
+                        tmpout/wincrt1.o                \
+                        tmpout/wincrt1w.o               \
+                        tmpout/dllcrt1.o                \
+                        tmpout/dllmain.o                \
+                        tmpout/chkstk.o                 \
+                        tmpout/alloca86_64.o            \
+                        tmpout/guardstk.o               \
+                        tmpout/libtcc1.o                \
+
+rm -r tmpout/ 
+echo "<-- libpetcc1_64.a (cleaned up .o files in tmpout)"                                               
 
 echo ""
 
-
-echo "Cross-compiling PE 'winout/petcc64.exe' with linout/a64.out"
+echo "Cross-compiling PE 'winout/petcc64.exe' with linout/petcc64"
 echo "-----------------------------------------------------------"
 # We need the DEF files here because there are no DLLs available
 # We remove them later on to prefer linking with DLLs on Windows
 cp lib/msvcrt.def    winout/petcclib
 cp lib/kernel32.def  winout/petcclib
-linout/a64.out -v -o winout/petcc64.exe -I include -B winout -stdlib tcc.c 
+linout/petcc64 $CCOPT -v -o winout/petcc64.exe -I include -B winout -stdlib tcc.c
 
 echo ""
 
@@ -70,9 +85,11 @@ echo 'petcc64.exe    = '$PESHA
 echo 'libpetcc1_64.a = '$LDSHA
 sed -e '1,$s/__SHAPE__/'$PESHA'/' \
     -e '1,$s/__SHALD__/'$LDSHA'/' \
+    -e '1,$s/__CCOPT__/set CCOPT='$CCOPT'/' \
     build-exes-with-cl.template > build-exes-with-cl.bat
 sed -e '1,$s/__SHAPE__/'$PESHA'/' \
     -e '1,$s/__SHALD__/'$LDSHA'/' \
+    -e '1,$s/__CCOPT__/set CCOPT='$CCOPT'/' \
     clang-build-exes.template > clang-build-exes.bat
 
 echo ""
@@ -80,14 +97,14 @@ echo ""
 
 echo "Making source tarball"
 echo "---------------------"
-tar czf petcc64-src.tgz --transform 's/^/petcc64-src\//'   \
-            COPYING LICENSE RELICENSING                    \
-            bootstrap-exes.sh                              \
-            build-exes-with-cl.bat clang-build-exes.bat    \
-            *.c *.h *.def include/                         \
-            lib/*.c lib/*.S lib/*.def                      \
+tar czf petcc64-src.tgz --transform 's/^/petcc64-src\//'          \
+            LICENCE LIC_*                                         \
+            bootstrap-exes.sh                                     \
+            build-exes-with-cl.* clang-build-exes.*               \
+            *.c *.h *.def include/                                \
+            lib/*.c lib/*.S lib/*.def                             \
+            testsandegs/*                                         \
 
-ls -l petcc64-src.tgz
 echo ""
 
 
@@ -96,7 +113,8 @@ echo "---------------------------------"
 # Remove DEF files - prefer the real DLLs in a Windows distro
 rm winout/petcclib/msvcrt.def
 rm winout/petcclib/kernel32.def
-cp RELICENSING     winout/petcc-LICENSING
+cp LICENCE         winout/
+cp LIC_*           winout/
 # Omitting these on the simplicity principle (less to explain)
 # cp lib/*.c         winout/petcclib
 # cp lib/*.S         winout/petcclib
@@ -107,7 +125,25 @@ cd winout
 zip -9 -r -q ../petcc64-winbin.zip *
 cd ..
 
-unzip -z petcc64-winbin.zip
+echo ""
+
+
+echo "Filling out linout/ to make viable cross-compiler"
+echo "-------------------------------------------------"
+mkdir linout/petcclib
+mkdir linout/petccinc
+cp -R include/*            linout/petccinc
+cp    lib/*.def            linout/petcclib
+cp    winout/petcclib/*.a  linout/petcclib
+cp    LICENCE              linout/
+cp    LIC_*                linout/
+
+echo ""
+
+
+echo "Made these distributables (source and binary)"
+echo "----------------------------------------------"
+ls -l petcc64-src.tgz
 ls -l petcc64-winbin.zip
 
 echo ""

@@ -485,7 +485,7 @@ static void error1(TCCState *s1, int is_warning, const char *fmt, va_list ap)
                 f->filename);
         }
     } else {
-        strcat_printf(buf, sizeof(buf), "tcc: ");
+        strcat_printf(buf, sizeof(buf), "petcc64: ");
     }
     if (is_warning)
         strcat_printf(buf, sizeof(buf), "warning: ");
@@ -728,14 +728,15 @@ LIBTCCAPI TCCState *tcc_new(void)
     s->nocommon = 1;
     s->warn_implicit_function_declaration = 1;
     s->ms_extensions = 1;
-    /* PETCC64 - altered defaults */
-    s->verbose       = 2; /* show files, includes, libs and EXE section summary */
+    /* PETCC64 - tweaked defaults */
+    s->verbose       = 1; /* -v shows files and EXE section summary, -vv for more */
     s->pe_unwind     = 1; /* if true, unwind info and .pdata is emitted */ 
     s->nostdinc      = 1; /* if true, no standard header paths are searched */
     s->nostdlib      = 1; /* if true, no CRT or standard DLLs are linked */
     s->nosysdir      = 0; /* if true, system directory is not added to DLL path */
-    s->pe_aslr       = 1; /* if true, enable ASLR (turn on DYNAMICBASE) */
-    s->pe_dep        = 1; /* if true, enable DEP (turn on NXCOMPAT) */   
+    s->pe_aslr       = 1; /* if true, enable ASLR (MS linker -> /DYNAMICBASE) */
+    s->pe_dep        = 1; /* if true, enable DEP (MS linker -> /NXCOMPAT) */   
+    s->pe_heva       = 1; /* if true, enable HEVA (MS linker ->  /HIGHENTROPYVA) */
     s->section_align = 0x1000; /* Default 4K memory alignment for PEs */
     s->pe_file_align = 0x200;  /* Default 'sector' alignment for files */
     s->sudefs        = 0; /* if true, will pre-#define S08/U08/S16/U16 etc. */
@@ -1279,9 +1280,12 @@ enum {
     TCC_OPTION_nostdinc,
     TCC_OPTION_nostdlib,
     TCC_OPTION_nosysdir,
+    TCC_OPTION_nocanary,
     TCC_OPTION_stdinc,
     TCC_OPTION_stdlib,
-    TCC_OPTION_sysdir,    
+    TCC_OPTION_sysdir,
+    TCC_OPTION_canary, 
+    TCC_OPTION_stdall,   
     TCC_OPTION_print_search_dirs,
     TCC_OPTION_rdynamic,
     TCC_OPTION_param,
@@ -1299,13 +1303,16 @@ enum {
     TCC_OPTION_peconsole,
     TCC_OPTION_penative,
     TCC_OPTION_pedll,
+    TCC_OPTION_uefiapp,
     TCC_OPTION_unwind,
     TCC_OPTION_nounwind,
     TCC_OPTION_easyfa,
     TCC_OPTION_aslr,
     TCC_OPTION_dep,
+    TCC_OPTION_heva,
     TCC_OPTION_noaslr,
     TCC_OPTION_nodep,
+    TCC_OPTION_noheva,
     TCC_OPTION_sudefs
 };    
 
@@ -1352,9 +1359,12 @@ static const TCCOption tcc_options[] = {
     { "nostdinc", TCC_OPTION_nostdinc, 0 },
     { "nostdlib", TCC_OPTION_nostdlib, 0 },
     { "nosysdir", TCC_OPTION_nosysdir, 0 },
+    { "nocanary", TCC_OPTION_nocanary, 0 },
     { "stdinc", TCC_OPTION_stdinc, 0 },
     { "stdlib", TCC_OPTION_stdlib, 0 },
-    { "sysdir", TCC_OPTION_sysdir, 0 },    
+    { "sysdir", TCC_OPTION_sysdir, 0 },
+    { "canary", TCC_OPTION_canary, 0 },
+    { "std", TCC_OPTION_stdall, 0 },   
     { "print-search-dirs", TCC_OPTION_print_search_dirs, 0 },
     { "w", TCC_OPTION_w, 0 },
     { "pipe", TCC_OPTION_pipe, 0},
@@ -1368,13 +1378,16 @@ static const TCCOption tcc_options[] = {
     { "peconsole", TCC_OPTION_peconsole, 0},
     { "penative", TCC_OPTION_penative, 0},
     { "pedll", TCC_OPTION_pedll, 0},
+    { "uefiapp", TCC_OPTION_uefiapp, 0 },
     { "unwind", TCC_OPTION_unwind, 0 },
     { "nounwind", TCC_OPTION_nounwind, 0 },
     { "easyfa", TCC_OPTION_easyfa, 0 },
     { "aslr", TCC_OPTION_aslr, 0 },
     { "dep", TCC_OPTION_dep, 0 },
+    { "heva", TCC_OPTION_heva, 0 },
     { "noaslr", TCC_OPTION_noaslr, 0 },
     { "nodep", TCC_OPTION_nodep, 0 },
+    { "noheva", TCC_OPTION_noheva, 0 },
     { "SU", TCC_OPTION_sudefs, 0 },
     { NULL, 0, 0 },
 };
@@ -1608,6 +1621,19 @@ reparse:
         case TCC_OPTION_pedll:
             x = TCC_OUTPUT_DLL;
             goto set_output_type;
+        case TCC_OPTION_pegui:
+            s->pe_subsystem = 2;
+            break;
+        case TCC_OPTION_peconsole:
+            s->pe_subsystem = 3;
+            break;
+        case TCC_OPTION_penative:
+            s->pe_subsystem = 1;
+            break; 
+        case TCC_OPTION_uefiapp:
+            s->pe_subsystem = 10;
+            x = TCC_OUTPUT_EFI;
+            goto set_output_type;
         case TCC_OPTION_soname:
             s->soname = tcc_strdup(optarg);
             break;
@@ -1639,6 +1665,9 @@ reparse:
         case TCC_OPTION_nosysdir:
             s->nosysdir = 1;
             break;
+        case TCC_OPTION_nocanary:
+            g_canary = 0;
+            break; 
         case TCC_OPTION_stdinc:
             s->nostdinc = 0;
             break;
@@ -1648,6 +1677,15 @@ reparse:
         case TCC_OPTION_sysdir:
             s->nosysdir = 0;
             break;
+        case TCC_OPTION_canary:
+            g_canary = 1;
+            break;
+        case TCC_OPTION_stdall:
+            s->nosysdir = 0;
+            s->nostdlib = 0;
+            s->nostdinc = 0;
+            g_canary    = 1;
+            break; 
         case TCC_OPTION_v:
             if (*optarg == '0') {
                s->verbose = 0;
@@ -1733,15 +1771,6 @@ reparse:
                 tcc_error("cannot parse %s here", r);
             tool = x;
             break;
-        case TCC_OPTION_pegui:
-            s->pe_subsystem = 2;
-            break;
-        case TCC_OPTION_peconsole:
-            s->pe_subsystem = 3;
-            break;
-        case TCC_OPTION_penative:
-            s->pe_subsystem = 1;
-            break; 
         case TCC_OPTION_unwind:
             s->pe_unwind = 1;
             break;    
@@ -1757,12 +1786,18 @@ reparse:
         case TCC_OPTION_dep:
             s->pe_dep = 1;
             break;
-        case TCC_OPTION_noaslr:
+        case TCC_OPTION_heva:
+            s->pe_heva = 1; 
+            break;
+         case TCC_OPTION_noaslr:
             s->pe_aslr = 0; 
             break;
         case TCC_OPTION_nodep:
             s->pe_dep = 0;
             break;
+        case TCC_OPTION_noheva:
+            s->pe_heva = 0;; 
+            break;        
         case TCC_OPTION_sudefs:
             s->sudefs = 1;
             break; 
@@ -1791,7 +1826,7 @@ unsupported_option:
         return tool;
     if (optind != noaction)
         return 0;
-    if (s->verbose == 2)
+    if (s->verbose >= 2)
         return OPT_PRINT_DIRS;
     if (s->verbose)
         return OPT_V;

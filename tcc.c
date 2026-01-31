@@ -24,32 +24,41 @@
 #endif
 #include "tcctools.c"
 
+#define TCC_BANNER                                                              \
+    "Tiny C Compiler - originally Copyright (c) 2001-2004 Fabrice Bellard\n"    \
+    "Stripped down by Paul Ducklin for use as a Windows learning tool\n"        \
+    "Generates 64-bit Windows ABI code in PE, .o (ELF-style) and .a formats\n"  \
+    "Version "TCC_VERSION"\n"
+
+#define TCC_OVERVIEW                                                            \
+    "Creates BootExecute (native), console, GUI, driver (SYS), and DLL files\n" \
+    "No standard includes or libs by default (-stdinc and -stdlib to enable)\n" \
+    "No bounds checking, no run-from-RAM, no backtrace, various new options\n"  \
+
 static const char help[] =
-    "Tiny C Compiler - Copyright (C) 2001-2023 Fabrice Bellard\n"
-    "Stripped down by Paul Ducklin for use as a learning tool\n"
-    "Version "TCC_VERSION" - Generates 64-bit PEs only\n"
+    TCC_BANNER
     "\n"
-    "Creates BootExecute (native), console, GUI, driver (SYS), and DLL files\n"
-    "No standard includes or libs by default (-stdinc and -stdlib to enable)\n"
-    "No bounds checking, no run-from-RAM, no backtrace, various new options\n"    
+    TCC_OVERVIEW   
     "\n"
     "Usage: petcc64 [options...] [-o outfile] [-c] infile(s)...\n"
     "\n"
     "General options:\n"
     "  -c           compile only - generate an object file\n"
     "  -o outfile   set output filename\n"
-    "  -g           generate runtime debug info              |implies -unwind|\n"
-    "  -f[no-]flag  set [or unset] flag                      |see petcc64 -hh|\n"
-    "  -W[no-]warn  set [or unset] warning                   |see petcc64 -hh|\n"
+    "  -g           generate runtime debug info              |set -unwind |\n"
+    "  -f[no-]flag  set [or unset] flag                      |petcc64 -hh |\n"
+    "  -W[no-]warn  set [or unset] warning                   |petcc64 -hh |\n"
     "  -w           disable all warnings\n"
     "  -v0          no build verbiage or progress info\n"
     "  -v           only list files compiled\n"
-    "  -vv          verbose, show includes and libs          |default|\n"
+    "  -vv          verbose, show includes and libs          |default     |\n"
     "  -            use stdin pipe as infile\n"
     "  @listfile    read arguments from listfile\n"
-    "  -[no]stdinc  do [not] use standard include paths      |default no|\n"
-    "  -[no]stdlib  do [not] look for CRT or usual DLLs      |default no|\n"
-    "  -[no]syslib  do [not] add system dir to DLL path      |default yes|\n"
+    "  -[no]stdinc  do [not] use standard include paths      |default off |\n"
+    "  -[no]stdlib  do [not] look for CRT or usual DLLs      |default off |\n"
+    "  -[no]canary  do [not] generate stack overflow checks  |default off |\n"
+    "  -[no]syslib  do [not] add system dir to DLL path      |default on  |\n"
+    "  -std         turn on '-stdinc -stdlib -canary -syslib' in one go\n"
     "\n"
     "Preprocessor options:\n"
     "  -SU          define S08/S16/S32/S64/U08/U16/U32/U64\n"
@@ -62,31 +71,33 @@ static const char help[] =
     "  -Ldir        add library path dir\n"
     "  -llib        link with dynamic or static library lib\n"
     "  -r           generate (relocatable) object file\n"
+    "  -penative    PE type 1  (IMAGE_SUBSYSTEM_NATIVE)\n"
+    "  -pegui       PE type 2  (IMAGE_SUBSYSTEM_WINDOWS_GUI)\n"
+    "  -peconsole   PE type 3  (IMAGE_SUBSYSTEM_WINDOWS_CUI) |default     |\n"
+    "  -uefiapp     PE type 10 (IMAGE_SUBSYSTEM_EFI_APPLICATION)\n"
     "  -pedll       generate DLL (Windows shared library)\n"
-    "  -penative    PE type 1 (IMAGE_SUBSYSTEM_NATIVE)\n"
-    "  -pegui       PE type 2 (IMAGE_SUBSYSTEM_WINDOWS_GUI)\n"
-    "  -peconsole   PE type 3 (IMAGE_SUBSYSTEM_WINDOWS_CUI)  |default|\n"
-    "  -easyfa      'easy' filealign (same as sectalign)\n"
-    "  -[no]aslr    set [or unset] ASLR (DYNAMICBASE)        |default set|\n"
-    "  -[no]dep     set [or unset] DEP (NXCOMPAT)            |default set|\n"
-    "  -[no]unwind  do [not] generate unwind info (.pdata)   |default set|\n"
-    "  -rdynamic    export all global symbols\n"
+    "  -[no]aslr    set [or unset] ASLR (DYNAMICBASE)        |default on  |\n"
+    "  -[no]dep     set [or unset] DEP (NXCOMPAT)            |default on  |\n"
+    "  -[no]heva    set [or unset] HEVA (HIGHENTROPYVA)      |default on  |\n"
+    "  -[no]unwind  do [not] generate unwind info (.pdata)   |default on  |\n"
+    "  -rdynamic    export all global symbols\n"  
     "  -soname      set name for DLL to be used at runtime\n"
-    "  -Wl,-opt...  set linker-specific options              |see petcc64 -hh|\n"
+    "  -easyfa      'easy' filealign (same as sectalign)\n"
+    "  -Wl,-opt...  set linker-specific options              |petcc64 -hh |\n"
+    "\n"
+    "Built-in tools:\n"
+    "  create lib:  petcc64 -ar [rcsv] lib.a files\n"
+    "  create def:  petcc64 -impdef lib.dll [-v] [-o lib.def]\n"
     "\n"
     "Help options:\n" 
     "  -h -hh       show this, show more help\n"
-    "\n"
-    "Built-in tools:\n"
-    "  create lib   petcc64 -ar [rcsv] lib.a files\n"
-    "  create def   petcc64 -impdef lib.dll [-v] [-o lib.def]\n"
     ;
 
 static const char help2[] =
-    "Tiny C Compiler - Copyright (C) 2001-2023 Fabrice Bellard\n"
-    "Stripped down by Paul Ducklin for use as a learning tool\n"
-    "Version "TCC_VERSION" - Generates 64-bit PEs only\n"
+    TCC_BANNER
     "\n"
+    TCC_OVERVIEW
+    "\n"    
     "Miscellaneous options:\n"
     "  -x[c|a|n]                     specify type of the next infile\n"
     "  -Bdir                         set tcc's private include/library dir\n"
@@ -148,9 +159,8 @@ static const char help2[] =
     ;
 
 static const char version[] =
-    "Tiny C Compiler - Copyright (C) 2001-2023 Fabrice Bellard\n"
-    "Stripped down by Paul Ducklin for use as a learning tool\n"
-    "Version "TCC_VERSION" - Generates 64-bit PEs only\n"
+    TCC_BANNER
+    "\n"
     ;
 
 static void print_dirs(const char *msg, char **paths, int nb_paths)
@@ -165,7 +175,7 @@ static void print_search_dirs(TCCState *s)
 {
     /* add default include paths (add here now that -nostdinc is default) */
     tcc_add_sysinclude_path(s, CONFIG_TCC_SYSINCLUDEPATHS);
-    printf("\ninstall:\n  %s\n", s->tcc_lib_path);
+    printf("install:\n  %s\n", s->tcc_lib_path);
     /* print_dirs("programs", NULL, 0); */
     print_dirs("include", s->sysinclude_paths, s->nb_sysinclude_paths);
     print_dirs("libraries", s->library_paths, s->nb_library_paths);
@@ -197,20 +207,22 @@ static char *default_outputfile(TCCState *s, const char *first_file)
     char *ext;
     const char *name = "a";
 
-    if (first_file && strcmp(first_file, "-"))
+    if (first_file && strcmp(first_file, "-")) {
         name = tcc_basename(first_file);
+    }
     snprintf(buf, sizeof(buf), "%s", name);
     ext = tcc_fileextension(buf);
-    if (s->output_type == TCC_OUTPUT_DLL)
+    if (s->output_type == TCC_OUTPUT_DLL) {
         strcpy(ext, ".dll");
-    else
-    if (s->output_type == TCC_OUTPUT_EXE)
+    } else if (s->output_type == TCC_OUTPUT_EXE) {
         strcpy(ext, ".exe");
-    else
-    if (s->output_type == TCC_OUTPUT_OBJ && !s->option_r && *ext)
+    } else if (s->output_type == TCC_OUTPUT_EFI) {
+        strcpy(ext, ".efi");
+    } else if (s->output_type == TCC_OUTPUT_OBJ && !s->option_r && *ext) {
         strcpy(ext, ".o");
-    else
+    } else {
         strcpy(buf, "a.out");
+    }
     return tcc_strdup(buf);
 }
 

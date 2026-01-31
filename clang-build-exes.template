@@ -1,12 +1,12 @@
 @echo off
 
-set CCOPT=
+__CCOPT__
 
 echo:
 echo -0----REMOVE OLD BUILD FILES------------------------------------
 echo Deleting EXEs, Os, WINOUT\ and so on...
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-echo Removing linout/ and winout/ trees for new build
+echo Removing tmpout/ and winout/ trees for new build
 if exist tmpout\                         rd  /s/q tmpout
 if exist winout\                         rd  /s/q winout
 echo Removing intermediate and test EXEs...
@@ -21,18 +21,18 @@ echo -0--------------------------------------------------------------
 
 echo:
 echo:
-echo -1----CREATE BOOTSTRAP COMPILER WITH CL-------------------------
-echo Building cl.out.exe using Visual Studio CL.EXE...
+echo -1----CREATE BOOTSTRAP COMPILER WITH CLANG----------------------
+echo Building clang.out.exe using LLVM/Clang...
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-cl /Fe: cl.out.exe tcc.c
+"C:\Program Files\LLVM\bin\clang.exe" -o clang.out.exe -Wno-deprecated-declarations -Wno-pointer-sign tcc.c
 echo -1--------------------------------------------------------------
 
 
 echo:
 echo:
-echo -2----BUILD INTERMEDIATE FILES WITH CL-GENERATED TCC CODE-------
-echo Building components with cl.out.exe...
+echo -2----BUILD INTERMEDIATE FILES WITH CLANG-GENERATED TCC CODE----
+echo Building components with clang.out.exe...
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 md tmpout
@@ -41,23 +41,23 @@ md petcclib
 cd ..
 
 echo Compiling library C and asm files...
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/crt1.o        -c lib/crt1.c 
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/crt1w.o       -c lib/crt1w.c 
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/wincrt1.o     -c lib/wincrt1.c 
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/wincrt1w.o    -c lib/wincrt1w.c 
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/dllcrt1.o     -c lib/dllcrt1.c 
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/dllmain.o     -c lib/dllmain.c 
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/chkstk.o      -c lib/chkstk.S 
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/alloca86_64.o -c lib/alloca86_64.S 
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/guardstk.o    -c lib/guardstk.S 
-cl.out.exe %CCOPT% -nocanary -v -I include -o lib/libtcc1.o     -c lib/libtcc1.c 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/crt1.o        -c lib/crt1.c 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/crt1w.o       -c lib/crt1w.c 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/wincrt1.o     -c lib/wincrt1.c 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/wincrt1w.o    -c lib/wincrt1w.c 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/dllcrt1.o     -c lib/dllcrt1.c 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/dllmain.o     -c lib/dllmain.c 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/chkstk.o      -c lib/chkstk.S 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/alloca86_64.o -c lib/alloca86_64.S 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/guardstk.o    -c lib/guardstk.S 
+clang.out.exe %CCOPT% -nocanary -v -I include -o lib/libtcc1.o     -c lib/libtcc1.c 
 
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Creating tcc library from just-built .o files...
-cl.out.exe -v -ar tmpout/petcclib/libpetcc1_64.a lib/crt1.o lib/crt1w.o lib/wincrt1.o lib/wincrt1w.o lib/dllcrt1.o lib/dllmain.o lib/chkstk.o lib/alloca86_64.o lib/guardstk.o lib/libtcc1.o
+clang.out.exe -v -ar tmpout/petcclib/libpetcc1_64.a lib/crt1.o lib/crt1w.o lib/wincrt1.o lib/wincrt1w.o lib/dllcrt1.o lib/dllmain.o lib/chkstk.o lib/alloca86_64.o lib/guardstk.o lib/libtcc1.o
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Compiling tcc compiler...
-cl.out.exe %CCOPT% -v -o  tmpout/tcc.out.exe -I include -B tmpout -stdlib tcc.c
+clang.out.exe %CCOPT% -v -o  tmpout/tcc.out.exe -I include -B tmpout -stdlib tcc.c
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Cleaning up intermediate .o files...
 del lib\*.o
@@ -106,10 +106,9 @@ echo -4----FILL UP DISTRO IN WINOUT DIRECTORY------------------------
 echo Adding files to newly-built distro directory...
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Copying licensing files...
-cp LICENCE            winout\
-cp LIC_*              winout\
+copy  LIC_*         winout\
 echo Recursively copying #include tree...
-xcopy /s /q include   winout\petccinc
+xcopy /s /q include winout\petccinc
 echo -4--------------------------------------------------------------
 
 
@@ -127,14 +126,14 @@ echo -6----CROSS-CHECK BUILD SHA256SUMS------------------------------
 echo Comparing hashes of Linux build and new files...
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Original cross-built EXE on Linux was...
-echo 02e9d5c596cb6b6a3dc7852be2d0f5a8f1034e69c5530a8770829a752c629537
+echo __SHAPE__
 echo Compiler EXEs generated with TCC code were...
 certutil -hashfile tmpout\tcc.out.exe              SHA256 | find /v "successfully"
 certutil -hashfile winout\petcc64.exe              SHA256 | find /v "successfully"
 certutil -hashfile testtcc.eee                     SHA256 | find /v "successfully"
 echo  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 echo Original cross-built LIB on Linux was...
-echo 9b547da5444efc26cac89108e38d22bc9ac51d854a7171b6bc1eb75e088c0621
+echo __SHALD__
 echo Compiler LIBs generated in this build were...
 certutil -hashfile tmpout\petcclib\libpetcc1_64.a  SHA256 | find /v "successfully"
 certutil -hashfile winout\petcclib\libpetcc1_64.a  SHA256 | find /v "successfully"

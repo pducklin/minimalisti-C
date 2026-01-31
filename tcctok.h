@@ -170,8 +170,9 @@
      DEF(TOK___fixunsdfdi, "__fixunsdfdi")
 
      DEF(TOK_alloca, "alloca")
-
-     DEF(TOK___chkstk, "__chkstk")
+     DEF(TOK___chkstk, "tinyc_chkstk")
+     DEF(TOK___canary, "tinyc_canary")
+     DEF(TOK___canary_chk, "tinyc_canary_chk")
 
 /* Tiny Assembler */
  DEF_ASMDIR(byte)              /* must be first directive */

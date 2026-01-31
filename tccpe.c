@@ -31,9 +31,6 @@
 
 #define ADDR3264 ULONGLONG
 #define PE_IMAGE_REL IMAGE_REL_BASED_DIR64
-#define REL_TYPE_DIRECT R_X86_64_64
-#define R_XXX_THUNKFIX R_X86_64_PC32
-#define R_XXX_RELATIVE R_X86_64_RELATIVE
 #define IMAGE_FILE_MACHINE 0x8664
 #define RSRC_RELTYPE 3
 
@@ -48,25 +45,25 @@ typedef unsigned long long ULONGLONG;
 #pragma pack(push, 1)
 
 typedef struct _IMAGE_DOS_HEADER {  /* DOS .EXE header */
-    WORD e_magic;         /* Magic number */
-    WORD e_cblp;          /* Bytes on last page of file */
-    WORD e_cp;            /* Pages in file */
-    WORD e_crlc;          /* Relocations */
-    WORD e_cparhdr;       /* Size of header in paragraphs */
-    WORD e_minalloc;      /* Minimum extra paragraphs needed */
-    WORD e_maxalloc;      /* Maximum extra paragraphs needed */
-    WORD e_ss;            /* Initial (relative) SS value */
-    WORD e_sp;            /* Initial SP value */
-    WORD e_csum;          /* Checksum */
-    WORD e_ip;            /* Initial IP value */
-    WORD e_cs;            /* Initial (relative) CS value */
-    WORD e_lfarlc;        /* File address of relocation table */
-    WORD e_ovno;          /* Overlay number */
-    WORD e_res[4];        /* Reserved words */
-    WORD e_oemid;         /* OEM identifier (for e_oeminfo) */
-    WORD e_oeminfo;       /* OEM information; e_oemid specific */
-    WORD e_res2[10];      /* Reserved words */
-    DWORD e_lfanew;        /* File address of new exe header */
+    WORD  e_magic;     /* Magic number */
+    WORD  e_cblp;      /* Bytes on last page of file */
+    WORD  e_cp;        /* Pages in file */
+    WORD  e_crlc;      /* Relocations */
+    WORD  e_cparhdr;   /* Size of header in paragraphs */
+    WORD  e_minalloc;  /* Minimum extra paragraphs needed */
+    WORD  e_maxalloc;  /* Maximum extra paragraphs needed */
+    WORD  e_ss;        /* Initial (relative) SS value */
+    WORD  e_sp;        /* Initial SP value */
+    WORD  e_csum;      /* Checksum */
+    WORD  e_ip;        /* Initial IP value */
+    WORD  e_cs;        /* Initial (relative) CS value */
+    WORD  e_lfarlc;    /* File address of relocation table */
+    WORD  e_ovno;      /* Overlay number */
+    WORD  e_res[4];    /* Reserved words */
+    WORD  e_oemid;     /* OEM identifier (for e_oeminfo) */
+    WORD  e_oeminfo;   /* OEM information; e_oemid specific */
+    WORD  e_res2[10];  /* Reserved words */
+    DWORD e_lfanew;    /* File address of new exe header */
 } IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;
 
 #define IMAGE_NT_SIGNATURE  0x00004550  /* PE00 */
@@ -331,10 +328,11 @@ struct pe_info {
     int imp_count;
 };
 
-#define PE_NUL 0
-#define PE_DLL 1
-#define PE_GUI 2
-#define PE_EXE 3
+#define PE_NUL    0
+#define PE_DLL    1
+#define PE_GUI    2
+#define PE_EXE    3
+#define UEFI_APP 10
 
 /* --------------------------------------------*/
 
@@ -493,47 +491,48 @@ static int pe_write(struct pe_info *pe)
     {
     /* IMAGE_FILE_HEADER filehdr */
     IMAGE_FILE_MACHINE, /*WORD    Machine; */
-    0x0003, /*WORD    NumberOfSections; */
-    0x00000000, /*DWORD   TimeDateStamp; */
-    0x00000000, /*DWORD   PointerToSymbolTable; */
-    0x00000000, /*DWORD   NumberOfSymbols; */
-    0x00F0, /*WORD    SizeOfOptionalHeader; */
-    0x0002  /*WORD    Characteristics; trimmed from 022F -> 0002 (relocs are now the default) */
-    
-#define CHARACTERISTICS_DLL 0x2002  /* trimmed from 222E -> 2002 (-ditto-) */
+    0x0003,             /*WORD   NumberOfSections; */
+    0x00000000,         /*DWORD  TimeDateStamp; */
+    0x00000000,         /*DWORD  PointerToSymbolTable; */
+    0x00000000,         /*DWORD  NumberOfSymbols; */
+    0x00F0,             /*WORD   SizeOfOptionalHeader; */
+    0x0022              /*WORD   Characteristics (0002->EXECUTABLE_IMAGE / 0020->LARGE_ADDRESS_AWARE [needs reloc changes]) */
+    #define CHARACTERISTICS_DLL 0x2022  /* Above characteristics settings with 2000->DLL ored in */
+
 },{
+
     /* IMAGE_OPTIONAL_HEADER opthdr */
     /* Standard fields. */
-    0x020B, /*WORD    Magic; */
-    0x06, /*BYTE    MajorLinkerVersion; */
-    0x00, /*BYTE    MinorLinkerVersion; */
-    0x00000000, /*DWORD   SizeOfCode; */
-    0x00000000, /*DWORD   SizeOfInitializedData; */
-    0x00000000, /*DWORD   SizeOfUninitializedData; */
-    0x00000000, /*DWORD   AddressOfEntryPoint; */
-    0x00000000, /*DWORD   BaseOfCode; */
+    0x020B,             /*WORD   Magic; */
+    0x06,               /*BYTE   MajorLinkerVersion; */
+    0x00,               /*BYTE   MinorLinkerVersion; */
+    0x00000000,         /*DWORD  SizeOfCode; */
+    0x00000000,         /*DWORD  SizeOfInitializedData; */
+    0x00000000,         /*DWORD  SizeOfUninitializedData; */
+    0x00000000,         /*DWORD  AddressOfEntryPoint; */
+    0x00000000,         /*DWORD  BaseOfCode; */
     /* NT additional fields. */
-    0x00400000,	    /*DWORD   ImageBase; */
-    0x00001000, /*DWORD   SectionAlignment; */
-    0x00000200, /*DWORD   FileAlignment; */
-    0x0004, /*WORD    MajorOperatingSystemVersion; */
-    0x0000, /*WORD    MinorOperatingSystemVersion; */
-    0x0000, /*WORD    MajorImageVersion; */
-    0x0000, /*WORD    MinorImageVersion; */
-    0x0004, /*WORD    MajorSubsystemVersion; */
-    0x0000, /*WORD    MinorSubsystemVersion; */
-    0x00000000, /*DWORD   Win32VersionValue; */
-    0x00000000, /*DWORD   SizeOfImage; */
-    0x00000200, /*DWORD   SizeOfHeaders; */
-    0x00000000, /*DWORD   CheckSum; */
-    0x0003, /*WORD    Subsystem;          switched to 3 (CONSOLE) by default */
-    0x0000, /*WORD    DllCharacteristics; defaults will set DEP (0x0100) and ASLR (0x0040) */
-    0x00100000, /*DWORD   SizeOfStackReserve; */
-    0x00001000, /*DWORD   SizeOfStackCommit; */
-    0x00100000, /*DWORD   SizeOfHeapReserve; */
-    0x00001000, /*DWORD   SizeOfHeapCommit; */
-    0x00000000, /*DWORD   LoaderFlags; */
-    0x00000010, /*DWORD   NumberOfRvaAndSizes; */
+    0x00400000,	      /*DWORD  ImageBase; */
+    0x00001000,         /*DWORD  SectionAlignment; */
+    0x00000200,         /*DWORD  FileAlignment; */
+    0x0004,             /*WORD   MajorOperatingSystemVersion; */
+    0x0000,             /*WORD   MinorOperatingSystemVersion; */
+    0x0000,             /*WORD   MajorImageVersion; */
+    0x0000,             /*WORD   MinorImageVersion; */
+    0x0004,             /*WORD   MajorSubsystemVersion; */
+    0x0000,             /*WORD   MinorSubsystemVersion; */
+    0x00000000,         /*DWORD  Win32VersionValue; */
+    0x00000000,         /*DWORD  SizeOfImage; */
+    0x00000200,         /*DWORD  SizeOfHeaders; */
+    0x00000000,         /*DWORD  CheckSum; */
+    0x0003,             /*WORD   Subsystem; (set to CONSOLE) by default) */
+    0x0160,             /*WORD   DllCharacteristics (0100->NX_COMPAT | 0040->DYNAMIC_BASE | 0020->HIGH_ENTROPY_VA) */
+    0x00100000,         /*DWORD  SizeOfStackReserve; */
+    0x00001000,         /*DWORD  SizeOfStackCommit; */
+    0x00100000,         /*DWORD  SizeOfHeapReserve; */
+    0x00001000,         /*DWORD  SizeOfHeapCommit; */
+    0x00000000,         /*DWORD  LoaderFlags; */
+    0x00000010,         /*DWORD  NumberOfRvaAndSizes; */
 
     /* IMAGE_DATA_DIRECTORY DataDirectory[16]; */
     {{0,0}, {0,0}, {0,0}, {0,0}, {0,0}, {0,0}, {0,0}, {0,0},
@@ -645,8 +644,9 @@ static int pe_write(struct pe_info *pe)
     pe_header.opthdr.Subsystem = pe->subsystem;
     pe_header.opthdr.SectionAlignment = pe->section_align;
     pe_header.opthdr.FileAlignment = pe->file_align;
-    if (pe->s1->pe_aslr) { pe_header.opthdr.DllCharacteristics |= 0x0040; }
-    if (pe->s1->pe_dep)  { pe_header.opthdr.DllCharacteristics |= 0x0100; }
+    if (!pe->s1->pe_aslr) { pe_header.opthdr.DllCharacteristics &= 0xFFBF; /* not 0x0040 */ }
+    if (!pe->s1->pe_dep)  { pe_header.opthdr.DllCharacteristics &= 0xFEFF; /* not 0x0100 */ }
+    if (!pe->s1->pe_heva) { pe_header.opthdr.DllCharacteristics &= 0xFFDF; /* not 0x0020 */ }
       
     if (pe->s1->pe_stack_size)
         pe_header.opthdr.SizeOfStackReserve = pe->s1->pe_stack_size;
@@ -855,12 +855,6 @@ static void pe_build_exports(struct pe_info *pe)
             p->name = name;
             dynarray_add(&sorted, &sym_count, p);
         }
-#if 0
-        if (sym->st_other & ST_PE_EXPORT)
-            printf("export: %s\n", name);
-        if (sym->st_other & ST_PE_STDCALL)
-            printf("stdcall: %s\n", name);
-#endif
     }
 
     if (0 == sym_count)
@@ -888,7 +882,6 @@ static void pe_build_exports(struct pe_info *pe)
     hdr->Name                   = str_o + rva_base;
     put_elf_str(pe->thunk, dllname);
 
-#if 1
     /* automatically write exports to <output-filename>.def */
     pstrcpy(buf, sizeof buf, pe->filename);
     strcpy(tcc_fileextension(buf), ".def");
@@ -900,14 +893,12 @@ static void pe_build_exports(struct pe_info *pe)
         if (pe->s1->verbose)
             printf("<- %s (%d symbol%s)\n", buf, sym_count, &"s"[sym_count < 2]);
     }
-#endif
 
     for (ord = 0; ord < sym_count; ++ord)
     {
         p = sorted[ord], sym_index = p->index, name = p->name;
         /* insert actual address later in relocate_section() */
-        put_elf_reloc(symtab_section, pe->thunk,
-            func_o, R_XXX_RELATIVE, sym_index);
+        put_elf_reloc(symtab_section, pe->thunk, func_o, R_X86_64_RELATIVE, sym_index);
         *(DWORD*)(pe->thunk->data + name_o)
             = pe->thunk->data_offset + rva_base;
         *(WORD*)(pe->thunk->data + ord_o)
@@ -926,7 +917,7 @@ static void pe_build_exports(struct pe_info *pe)
 }
 
 /* ------------------------------------------------------------- */
-static void pe_build_reloc (struct pe_info *pe)
+static void pe_build_reloc(struct pe_info *pe)
 {
     DWORD offset, block_ptr, addr;
     int count, i;
@@ -941,7 +932,7 @@ static void pe_build_reloc (struct pe_info *pe)
             int type = ELFW(R_TYPE)(rel->r_info);
             addr = rel->r_offset + s->sh_addr;
             ++ rel;
-            if (type != REL_TYPE_DIRECT)
+            if (type != R_X86_64_64)
                 continue;
             if (count == 0) { /* new block */
                 block_ptr = pe->reloc->data_offset;
@@ -1028,7 +1019,7 @@ static int pe_assign_addresses (struct pe_info *pe)
     /* Without relocations, an EXE must be loaded at its base address  */
     /*if (PE_DLL == pe->type) */
 
-       pe->reloc = new_section(pe->s1, ".reloc", SHT_PROGBITS, 0);
+    pe->reloc = new_section(pe->s1, ".reloc", SHT_PROGBITS, 0);
 
     // pe->thunk = new_section(pe->s1, ".iedat", SHT_PROGBITS, SHF_ALLOC);
 
@@ -1193,8 +1184,7 @@ static int pe_check_symbols(struct pe_info *pe)
                         symtab_section, 0, sizeof(DWORD),
                         ELFW(ST_INFO)(STB_GLOBAL, STT_OBJECT),
                         0, SHN_UNDEF, buffer);
-                    put_elf_reloc(symtab_section, text_section, 
-                        offset + 2, R_XXX_THUNKFIX, is->iat_index);
+                    put_elf_reloc(symtab_section, text_section, offset + 2, R_X86_64_PC32, is->iat_index);
                     is->thk_offset = offset;
                 }
 
@@ -1566,8 +1556,7 @@ static int pe_load_res(TCCState *s1, int fd)
         // printf("rsrc_reloc: %x %x %x\n", rel.offset, rel.size, rel.type);
         if (rel.type != RSRC_RELTYPE)
             goto quit;
-        put_elf_reloc(symtab_section, rsrc_section,
-            rel.offset, R_XXX_RELATIVE, sym_index);
+        put_elf_reloc(symtab_section, rsrc_section, rel.offset, R_X86_64_RELATIVE, sym_index);
         offs += sizeof rel;
     }
     ret = 0;
@@ -1674,7 +1663,9 @@ ST_FUNC int pe_load_file(struct TCCState *s1, const char *filename, int fd)
         ret = pe_load_def(s1, fd);
     else if (pe_load_res(s1, fd) == 0)
         ret = 0;
-    else if (read_mem(fd, 0, buf, 4) && 0 == memcmp(buf, "MZ\220", 4))
+    // we relax the .EXE check to 'MZ' only, not any other header
+    // content, so that at least MS and Wine PE32+ files will work   
+    else if (read_mem(fd, 0, buf, 2) && 0 == memcmp(buf, "MZ", 2))
         ret = pe_load_dll(s1, filename);
     return ret;
 }
@@ -1738,7 +1729,7 @@ ST_FUNC void pe_add_unwind_data(unsigned start, unsigned end, unsigned stack)
 
     /* put relocations on it */
     for (n = o + sizeof *p; o < n; o += sizeof p->BeginAddress)
-        put_elf_reloc(symtab_section, pd, o, R_XXX_RELATIVE, s1->uw_sym);
+        put_elf_reloc(symtab_section, pd, o, R_X86_64_RELATIVE, s1->uw_sym);
 }
 /* ------------------------------------------------------------- */
 
@@ -1748,6 +1739,14 @@ static void pe_add_runtime(TCCState *s1, struct pe_info *pe)
     int pe_type = 0;
     int unicode_entry = 0;
 
+    if (s1->pe_subsystem == UEFI_APP) {
+        pe->type = UEFI_APP;
+        pe->start_symbol = "UefiMain";
+        s1->output_type= TCC_OUTPUT_EFI;
+        /* special-case this for now */
+        return;
+    }  
+    else
     if (find_elf_sym(symtab_section, "WinMain"))
         pe_type = PE_GUI;
     else
@@ -1789,7 +1788,7 @@ static void pe_add_runtime(TCCState *s1, struct pe_info *pe)
     tcc_add_pragma_libs(s1);
 
     if (0 == s1->nostdlib) {
-        static const char *libs[] = {
+        static const char *libs[] = { 
             TCC_LIBTCC1, "msvcrt", "kernel32", "", "user32", "gdi32", NULL
         };
         const char **pp, *p;
@@ -1814,13 +1813,17 @@ static void pe_set_options(TCCState * s1, struct pe_info *pe)
 {
     if (PE_DLL == pe->type) {
         /* XXX: check if is correct for arm-pe target */
-        pe->imagebase = 0x10000000;
+        /* Set bit 33 to 1 to force high-loading and to do high_entropy_va (needs large_address_aware */
+        pe->imagebase = 0x0000000005500000ULL;
     } else {
-       pe->imagebase = 0x00400000;
+        pe->imagebase = 0x0000000003300000ULL;
     }
 
     if (PE_DLL == pe->type || PE_GUI == pe->type)
         pe->subsystem = 2;
+    else
+    if (UEFI_APP == pe->type)
+        pe->subsystem = 10;
     else
         pe->subsystem = 3;
     /* Allow override via -Wl,-subsystem=... option */

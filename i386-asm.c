@@ -27,8 +27,8 @@
 #define TOK_ASM_last TOK_ASM_emms
 #define TOK_ASM_alllast TOK_ASM_subps
 
-#define OPC_B          0x01  /* only used with OPC_WL */
-#define OPC_WL         0x02  /* accepts w, l or no suffix */
+#define OPC_B          0x01 /* only used with OPC_WL */
+#define OPC_WL         0x02 /* accepts w, l or no suffix */
 #define OPC_BWL        (OPC_B | OPC_WL) /* accepts b, w, l or no suffix */
 #define OPC_REG        0x04 /* register is added to opcode */
 #define OPC_MODRM      0x08 /* modrm encoding */
@@ -43,10 +43,10 @@
 
 #define OPC_0F        0x100 /* Is secondary map (0x0f prefix) */
 #define OPC_48        0x200 /* Always has REX prefix */
-#define OPC_WLQ     0x1000  /* accepts w, l, q or no suffix */
-#define OPC_BWLQ    (OPC_B | OPC_WLQ) /* accepts b, w, l, q or no suffix */
-#define OPC_WLX     OPC_WLQ
-#define OPC_BWLX    OPC_BWLQ
+#define OPC_WLQ      0x1000 /* accepts w, l, q or no suffix */
+#define OPC_BWLQ     (OPC_B | OPC_WLQ) /* accepts b, w, l, q or no suffix */
+#define OPC_WLX      OPC_WLQ
+#define OPC_BWLX     OPC_BWLQ
 
 
 #define OPC_GROUP_SHIFT 13
@@ -443,10 +443,10 @@ ST_FUNC void gen_expr32(ExprValue *pe)
 {
     if (pe->pcrel)
         /* If PC-relative, always set VT_SYM, even without symbol,
-	   so as to force a relocation to be emitted.  */
-	gen_addrpc32(VT_SYM, pe->sym, pe->v);
+           so as to force a relocation to be emitted.  */
+	    gen_addrpc32(VT_SYM, pe->sym, pe->v);
     else
-	gen_addr32(pe->sym ? VT_SYM : 0, pe->sym, pe->v);
+        gen_addr32(pe->sym ? VT_SYM : 0, pe->sym, pe->v);
 }
 
 ST_FUNC void gen_expr64(ExprValue *pe)
@@ -486,7 +486,7 @@ static inline int asm_modrm(int reg, Operand *op)
 	     g(0x04 + (reg << 3));
 	     g(0x25);
 	     gen_expr32(&op->e);
-    } else if (op->reg == -2) {
+    } else if (op->reg == -2) {  /* used for RIP addressing */
         ExprValue *pe = &op->e;
         g(0x05 + (reg << 3));
         gen_addrpc32(pe->sym ? VT_SYM : 0, pe->sym, pe->v);

@@ -1,0 +1,68 @@
+This is the Tiny C Compiler, originally created by the talented and absurdly
+productive French programmer Fabrice Bellard. Fabrice is the originator of
+many very widely-used projects, including FFMPEG, QEMU, QuickJS, and more.
+
+He's also a leading figure in the algorithms we use today for calculating
+the decimal expansion of pi (the ratio of the circumference of a circle to
+its diameter) efficiently to absurd numbers of digits, because every 
+brilliant programmer needs a relaxing hobby :-)
+
+This repository has been stripped down heavily, and lightly modified, for 
+use as a learning tool on 64-bit Windows. It makes a miniature but useful
+development kit for hackers and cybersecurity threat researchers that is
+less that 1/10,000th the installed size of tools such as MINGW64 or Microsoft 
+Visual Studio, even with its source archive included. It can be built on 
+Linux if you have clang or gcc installed, which produces a handy miniature 
+cross-compiler for Linux, as well as a full Windows binary distro *and* 
+source tree archive weighing in at about 1MB for everything. (Yes, 1MB, not 
+1GB. And, yes, it can compile itself out of the box on Windows. Builds are 
+not time-stamped so they are repeatable. The distro includes self-build 
+scripts with embedded hashes so you can check that it's working correctly.)
+
+The only file you actually *need* to make working Windows test code, 
+including BootExecute binaries, kernel drivers, EXEs, DLLs and UEFI apps
+is the .EXE of the compiler itself, which is under 500KB. 
+
+The project started life as a compiler for a usable subset of C that was 
+small enough to win the Obfuscated C contest. (True story!) 
+
+Inventor Fabrice then turned it into a proper C compiler + linker + runtime 
+library, and included code from numerous contributors to support a wide range 
+of target processors, forming the aptly-named TCC, short for Tiny C Compiler.
+
+At one time, it seems that the project as a whole used the the GNU Lesser 
+GPL 2.1 licence, but Fabrice ultimately asked the known contributors to 
+relicense their files under an MIT-style licence. One author explictly 
+declined to relicense one of their files, while two other authors responsible 
+for three files in total did not respond. None of those unrelicensed files 
+appear in this project, which was created, modified and tweaked by Paul
+Ducklin. My contributions are licensed under these same MIT-style conditions
+requested by Fabrice. 
+
+See file: LIC_FABRICE-BELLARD.
+
+However, some files used here seem to have been taken from GCC, such as code
+to support the Elf/STAB formats that the Tiny C Compiler uses, even on the
+Windows platform. (Object files that would be .OBJs with other compilers are
+actually .o files, and .LIBs come out as .a files, which are Unix-style 'ar'
+archives. For source debugging, you can therefore use a Windows port of GDB,
+of which several are available.)
+
+The GNU Library Public License, version 2, and its successor the GNU Lesser 
+General Public License 2.1, therefore applies to some code here.
+
+See file: LIC_LESSER-GPL.
+
+Enjoy.
+
+PS. If the word "licence" seems weird to you, keep in mind that in British 
+and Commonwealth English, we use -C- in its noun forms, and -S- in its verb 
+forms, so we follow licensing procedures to create and issue licences. 
+Americans use the -S- spelling for both. We do the same thing with the word 
+"practice," so that cricket practice is time used to practise cricket. 
+Amusingly, Americans have chosen the -C- spelling for both of those forms. 
+Also, they tend to go in for baseball rather than cricket, but that is a
+matter for another day.
+
+
+
