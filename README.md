@@ -2,7 +2,7 @@
 
 If you have ever installed the multigigabytes of Visual Studio 
 or MINGW64 just to compile some test code or a tiny utility, 
-you will appreciate why this repository is called `minimalisti-C`.
+you will appreciate why this repository is called **minimalisti-C**.
 
 This repository is a curated, stripped-down version of Fabrice Bellard's 
 Tiny CC compiler. This version generates 64-bit PE files only, as used 
@@ -10,10 +10,10 @@ on 64-bit versions of Windows and in UEFI apps.
 
 It will compile and link BootExecute (native) programs, console and
 GUI apps, SYS files (drivers), DLLs (shared libraries), and UEFI apps.
-The Windows binary release file is about half a megabyte, and the full
-source code tarball is well under a megabyte, including a handy set of
-`include` files; the compiler, linker and library source; and various 
-test and example code samples.
+The Windows [binary release](https://github.com/pducklin/minimalisti-C/releases)
+is about half a megabyte, and the full [source code tarball](https://github.com/pducklin/minimalisti-C/releases)
+is well under a megabyte, including a handy set of `include` files; the compiler,
+linker and library source; and various test and example code samples.
 
 You can build it on Linux (with Clang or GCC), build it on Windows 
 (with itself, CL or Clang), or **simply unzip the [pre-built package](https://github.com/pducklin/minimalisti-C/releases)
